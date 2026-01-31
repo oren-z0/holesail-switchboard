@@ -1,812 +1,812 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Holesail Switchboard</title>
-    <script src="/qr-code-styling.js" defer></script>
-    <script src="/alpine.js" defer></script>
-    <link rel="icon" href="/images/logo-150x150.png" sizes="32x32" />
-    <link rel="stylesheet" href="/style.css">
-    <style>
-        [x-cloak] {
-            display: none !important;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Holesail Switchboard</title>
+  <script src="/qr-code-styling.js" defer></script>
+  <script src="/alpine.js" defer></script>
+  <link rel="icon" href="/images/logo-150x150.png" sizes="32x32" />
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    [x-cloak] {
+      display: none !important;
+    }
+  </style>
 </head>
 <body x-data="appData()">
-    <div class="min-h-screen bg-gray-100">
-        <div class="container mx-auto py-8 px-4 max-w-4xl" x-cloak>
-            <h1 class="text-3xl font-bold text-center text-gray-700 mb-8">Holesail Switchboard</h1>
+  <div class="min-h-screen bg-gray-100">
+    <div class="container mx-auto py-8 px-4 max-w-4xl" x-cloak>
+      <h1 class="text-3xl font-bold text-center text-gray-700 mb-8">Holesail Switchboard</h1>
 
-            <!-- Loading State -->
-            <div class="flex justify-center py-12" x-show="loadingState === 'loading'">
-                <svg class="animate-spin h-8 w-8 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none"
-                    viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                    </path>
-                </svg>
+      <!-- Loading State -->
+      <div class="flex justify-center py-12" x-show="loadingState === 'loading'">
+        <svg class="animate-spin h-8 w-8 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+          viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+          </path>
+        </svg>
+      </div>
+
+      <!-- Error State -->
+      <div x-show="loadingState === 'error'" class="text-center py-12">
+        <p class="text-red-500 font-medium">
+          Server did not respond. Try restarting the server and refreshing the page.
+        </p>
+      </div>
+
+      <!-- Main Content -->
+      <div x-show="loadingState === 'loaded'">
+        <!-- Servers Section -->
+        <section class="mb-8">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-gray-700">Servers</h2>
+            <button @click="openServerModal()"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+              Add Server
+            </button>
+          </div>
+
+          <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div x-show="servers.length === 0" class="p-6 text-center text-gray-500">
+              No servers configured. Click "Add Server" to create one.
             </div>
-
-            <!-- Error State -->
-            <div x-show="loadingState === 'error'" class="text-center py-12">
-                <p class="text-red-500 font-medium">
-                    Server did not respond. Try restarting the server and refreshing the page.
-                </p>
-            </div>
-
-            <!-- Main Content -->
-            <div x-show="loadingState === 'loaded'">
-                <!-- Servers Section -->
-                <section class="mb-8">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-semibold text-gray-700">Servers</h2>
-                        <button @click="openServerModal()"
-                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                            Add Server
-                        </button>
-                    </div>
-
-                    <div class="bg-white rounded-lg shadow overflow-hidden">
-                        <div x-show="servers.length === 0" class="p-6 text-center text-gray-500">
-                            No servers configured. Click "Add Server" to create one.
-                        </div>
-                        <ul class="divide-y divide-gray-200">
-                            <template x-for="(server, index) in servers" :key="index">
-                                <li class="p-4 hover:bg-gray-50">
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex items-center space-x-3">
-                                            <!-- Status Indicator -->
-                                            <span class="relative flex h-3 w-3">
-                                                <span x-show="server.state === 'running'"
-                                                    class="absolute inline-flex h-full w-full rounded-full bg-green-500">
-                                                </span>
-                                                <span x-show="server.state === 'failed'"
-                                                    class="absolute inline-flex h-full w-full rounded-full bg-red-500">
-                                                </span>
-                                                <span x-show="server.state === 'disabled'"
-                                                    class="absolute inline-flex h-full w-full rounded-full bg-gray-400">
-                                                </span>
-                                                <span x-show="server.state === 'initializing'"
-                                                    class="absolute inline-flex h-full w-full rounded-full bg-yellow-400 animate-pulse">
-                                                </span>
-                                            </span>
-                                            <div>
-                                                <p class="font-medium text-gray-900"
-                                                    x-text="server.host + ':' + server.port"></p>
-                                                <p class="text-sm text-gray-500">
-                                                    <span x-show="server.secure"
-                                                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mr-2">
-                                                        Secure
-                                                    </span>
-                                                    <span class="text-gray-400"
-                                                        x-text="'Key: ' + server.key.substring(0, 8) + '...'"></span>
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div class="flex items-center space-x-2">
-                                            <template x-if="server.hsInfoUrl">
-                                                <button @click="copyToClipboard(server.hsInfoUrl, 'Connection URL')"
-                                                    class="p-2 text-gray-500 hover:text-gray-700" title="Copy URL">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none"
-                                                        viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
-                                                        class="w-5 h-5">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
-                                                    </svg>
-                                                </button>
-                                            </template>
-                                            <template x-if="server.hsInfoUrl">
-                                                <button @click="showQrModal(server.hsInfoUrl)"
-                                                    class="p-2 text-gray-500 hover:text-gray-700" title="Show QR Code">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none"
-                                                        viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
-                                                        class="w-5 h-5">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z" />
-                                                    </svg>
-                                                </button>
-                                            </template>
-                                            <button @click="openServerModal(index)"
-                                                class="p-2 text-gray-500 hover:text-gray-700" title="Edit">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                                    stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-                                                </svg>
-                                            </button>
-                                            <button @click="deleteServer(index)"
-                                                class="p-2 text-red-500 hover:text-red-700" title="Delete">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                                    stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <p x-show="server.error" class="mt-2 text-sm text-red-500"
-                                        x-text="'Error: ' + server.error"></p>
-                                </li>
-                            </template>
-                        </ul>
-                    </div>
-                </section>
-
-                <!-- Clients Section -->
-                <section>
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-semibold text-gray-700">Clients</h2>
-                        <button @click="openClientModal()"
-                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                            Add Client
-                        </button>
-                    </div>
-
-                    <div class="bg-white rounded-lg shadow overflow-hidden">
-                        <div x-show="clients.length === 0" class="p-6 text-center text-gray-500">
-                            No clients configured. Click "Add Client" to create one.
-                        </div>
-                        <ul class="divide-y divide-gray-200">
-                            <template x-for="(client, index) in clients" :key="index">
-                                <li class="p-4 hover:bg-gray-50">
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex items-center space-x-3">
-                                            <!-- Status Indicator -->
-                                            <span class="relative flex h-3 w-3">
-                                                <span x-show="client.state === 'running'"
-                                                    class="absolute inline-flex h-full w-full rounded-full bg-green-500">
-                                                </span>
-                                                <span x-show="client.state === 'failed'"
-                                                    class="absolute inline-flex h-full w-full rounded-full bg-red-500">
-                                                </span>
-                                                <span x-show="client.state === 'disabled'"
-                                                    class="absolute inline-flex h-full w-full rounded-full bg-gray-400">
-                                                </span>
-                                                <span x-show="client.state === 'initializing'"
-                                                    class="absolute inline-flex h-full w-full rounded-full bg-yellow-400 animate-pulse">
-                                                </span>
-                                            </span>
-                                            <div>
-                                                <p class="font-medium text-gray-900"
-                                                    x-text="client.host + ':' + client.port"></p>
-                                                <p class="text-sm text-gray-500">
-                                                    <span class="text-gray-400"
-                                                        x-text="'Key: ' + client.key.substring(0, 16) + '...'"></span>
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div class="flex items-center space-x-2">
-                                            <button @click="copyToClipboard(client.host + ':' + client.port, 'Local address')"
-                                                class="p-2 text-gray-500 hover:text-gray-700" title="Copy address">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                                    stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
-                                                </svg>
-                                            </button>
-                                            <button @click="openClientModal(index)"
-                                                class="p-2 text-gray-500 hover:text-gray-700" title="Edit">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                                    stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-                                                </svg>
-                                            </button>
-                                            <button @click="deleteClient(index)"
-                                                class="p-2 text-red-500 hover:text-red-700" title="Delete">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                                    stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <p x-show="client.error" class="mt-2 text-sm text-red-500"
-                                        x-text="'Error: ' + client.error"></p>
-                                </li>
-                            </template>
-                        </ul>
-                    </div>
-                </section>
-            </div>
-        </div>
-    </div>
-
-    <!-- Server Modal -->
-    <div x-show="serverModal.open" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-black opacity-50" @click="closeServerModal()"></div>
-            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4"
-                    x-text="serverModal.editIndex !== null ? 'Edit Server' : 'Add Server'"></h3>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Host</label>
-                        <input type="text" x-model="serverModal.host"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="0.0.0.0">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Port</label>
-                        <input type="number" x-model.number="serverModal.port"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="8080">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Key (64 hex characters)</label>
-                        <div class="flex gap-2">
-                            <input type="text" x-model="serverModal.key"
-                                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                                placeholder="Leave empty to auto-generate">
-                            <button @click="serverModal.key = generateHexKey()"
-                                class="px-3 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
-                                Generate
-                            </button>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <label class="flex items-center">
-                            <input type="checkbox" x-model="serverModal.secure"
-                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                            <span class="ml-2 text-sm text-gray-700">Secure</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="checkbox" x-model="serverModal.enabled"
-                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                            <span class="ml-2 text-sm text-gray-700">Enabled</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="mt-6 flex justify-end space-x-3">
-                    <button @click="closeServerModal()"
-                        class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
-                        Cancel
-                    </button>
-                    <button @click="saveServer()" :disabled="serverModal.saving"
-                        class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
-                        <span x-show="!serverModal.saving" x-text="serverModal.editIndex !== null ? 'Save' : 'Create'">
+            <ul class="divide-y divide-gray-200">
+              <template x-for="(server, index) in servers" :key="index">
+                <li class="p-4 hover:bg-gray-50">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                      <!-- Status Indicator -->
+                      <span class="relative flex h-3 w-3">
+                        <span x-show="server.state === 'running'"
+                          class="absolute inline-flex h-full w-full rounded-full bg-green-500">
                         </span>
-                        <span x-show="serverModal.saving">Saving...</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Client Modal -->
-    <div x-show="clientModal.open" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-black opacity-50" @click="closeClientModal()"></div>
-            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4"
-                    x-text="clientModal.editIndex !== null ? 'Edit Client' : 'Add Client'"></h3>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Key (connection URL)</label>
-                        <input type="text" x-model="clientModal.key"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                            placeholder="z32 encoded key from server">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Local Port</label>
-                        <input type="number" x-model.number="clientModal.port"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="9000">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Local Host (optional)</label>
-                        <input type="text" x-model="clientModal.host"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="127.0.0.1">
-                    </div>
-                    <div>
-                        <label class="flex items-center">
-                            <input type="checkbox" x-model="clientModal.enabled"
-                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                            <span class="ml-2 text-sm text-gray-700">Enabled</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="mt-6 flex justify-end space-x-3">
-                    <button @click="closeClientModal()"
-                        class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
-                        Cancel
-                    </button>
-                    <button @click="saveClient()" :disabled="clientModal.saving"
-                        class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
-                        <span x-show="!clientModal.saving" x-text="clientModal.editIndex !== null ? 'Save' : 'Create'">
+                        <span x-show="server.state === 'failed'"
+                          class="absolute inline-flex h-full w-full rounded-full bg-red-500">
                         </span>
-                        <span x-show="clientModal.saving">Saving...</span>
-                    </button>
-                </div>
+                        <span x-show="server.state === 'disabled'"
+                          class="absolute inline-flex h-full w-full rounded-full bg-gray-400">
+                        </span>
+                        <span x-show="server.state === 'initializing'"
+                          class="absolute inline-flex h-full w-full rounded-full bg-yellow-400 animate-pulse">
+                        </span>
+                      </span>
+                      <div>
+                        <p class="font-medium text-gray-900"
+                          x-text="server.host + ':' + server.port"></p>
+                        <p class="text-sm text-gray-500">
+                          <span x-show="server.secure"
+                            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mr-2">
+                            Secure
+                          </span>
+                          <span class="text-gray-400"
+                            x-text="'Key: ' + server.key.substring(0, 8) + '...'"></span>
+                        </p>
+                      </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <template x-if="server.hsInfoUrl">
+                        <button @click="copyToClipboard(server.hsInfoUrl, 'Connection URL')"
+                          class="p-2 text-gray-500 hover:text-gray-700" title="Copy URL">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+                            class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
+                          </svg>
+                        </button>
+                      </template>
+                      <template x-if="server.hsInfoUrl">
+                        <button @click="showQrModal(server.hsInfoUrl)"
+                          class="p-2 text-gray-500 hover:text-gray-700" title="Show QR Code">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+                            class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z" />
+                          </svg>
+                        </button>
+                      </template>
+                      <button @click="openServerModal(index)"
+                        class="p-2 text-gray-500 hover:text-gray-700" title="Edit">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                          stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                          <path stroke-linecap="round" stroke-linejoin="round"
+                            d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                        </svg>
+                      </button>
+                      <button @click="deleteServer(index)"
+                        class="p-2 text-red-500 hover:text-red-700" title="Delete">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                          stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                          <path stroke-linecap="round" stroke-linejoin="round"
+                            d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <p x-show="server.error" class="mt-2 text-sm text-red-500"
+                    x-text="'Error: ' + server.error"></p>
+                </li>
+              </template>
+            </ul>
+          </div>
+        </section>
+
+        <!-- Clients Section -->
+        <section>
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-gray-700">Clients</h2>
+            <button @click="openClientModal()"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+              Add Client
+            </button>
+          </div>
+
+          <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div x-show="clients.length === 0" class="p-6 text-center text-gray-500">
+              No clients configured. Click "Add Client" to create one.
             </div>
-        </div>
+            <ul class="divide-y divide-gray-200">
+              <template x-for="(client, index) in clients" :key="index">
+                <li class="p-4 hover:bg-gray-50">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                      <!-- Status Indicator -->
+                      <span class="relative flex h-3 w-3">
+                        <span x-show="client.state === 'running'"
+                          class="absolute inline-flex h-full w-full rounded-full bg-green-500">
+                        </span>
+                        <span x-show="client.state === 'failed'"
+                          class="absolute inline-flex h-full w-full rounded-full bg-red-500">
+                        </span>
+                        <span x-show="client.state === 'disabled'"
+                          class="absolute inline-flex h-full w-full rounded-full bg-gray-400">
+                        </span>
+                        <span x-show="client.state === 'initializing'"
+                          class="absolute inline-flex h-full w-full rounded-full bg-yellow-400 animate-pulse">
+                        </span>
+                      </span>
+                      <div>
+                        <p class="font-medium text-gray-900"
+                          x-text="client.host + ':' + client.port"></p>
+                        <p class="text-sm text-gray-500">
+                          <span class="text-gray-400"
+                            x-text="'Key: ' + client.key.substring(0, 16) + '...'"></span>
+                        </p>
+                      </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <button @click="copyToClipboard(client.host + ':' + client.port, 'Local address')"
+                        class="p-2 text-gray-500 hover:text-gray-700" title="Copy address">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                          stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                          <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
+                        </svg>
+                      </button>
+                      <button @click="openClientModal(index)"
+                        class="p-2 text-gray-500 hover:text-gray-700" title="Edit">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                          stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                          <path stroke-linecap="round" stroke-linejoin="round"
+                            d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                        </svg>
+                      </button>
+                      <button @click="deleteClient(index)"
+                        class="p-2 text-red-500 hover:text-red-700" title="Delete">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                          stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                          <path stroke-linecap="round" stroke-linejoin="round"
+                            d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <p x-show="client.error" class="mt-2 text-sm text-red-500"
+                    x-text="'Error: ' + client.error"></p>
+                </li>
+              </template>
+            </ul>
+          </div>
+        </section>
+      </div>
     </div>
+  </div>
 
-    <!-- QR Code Modal -->
-    <div x-show="qrModal.open" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-black opacity-50" @click="closeQrModal()"></div>
-            <div class="relative bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4 text-center">Connection URL</h3>
-                <div id="qrcode-container" class="flex justify-center mb-4"></div>
-                <p class="text-center text-sm text-gray-600 font-mono break-all" x-text="qrModal.url"></p>
-                <div class="mt-4 flex justify-center">
-                    <button @click="closeQrModal()"
-                        class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
-                        Close
-                    </button>
-                </div>
+  <!-- Server Modal -->
+  <div x-show="serverModal.open" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+    <div class="flex items-center justify-center min-h-screen px-4">
+      <div class="fixed inset-0 bg-black opacity-50" @click="closeServerModal()"></div>
+      <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4"
+          x-text="serverModal.editIndex !== null ? 'Edit Server' : 'Add Server'"></h3>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Host</label>
+            <input type="text" x-model="serverModal.host"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="0.0.0.0">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Port</label>
+            <input type="number" x-model.number="serverModal.port"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="8080">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Key (64 hex characters)</label>
+            <div class="flex gap-2">
+              <input type="text" x-model="serverModal.key"
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                placeholder="Leave empty to auto-generate">
+              <button @click="serverModal.key = generateHexKey()"
+                class="px-3 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                Generate
+              </button>
             </div>
+          </div>
+          <div class="flex items-center space-x-4">
+            <label class="flex items-center">
+              <input type="checkbox" x-model="serverModal.secure"
+                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+              <span class="ml-2 text-sm text-gray-700">Secure</span>
+            </label>
+            <label class="flex items-center">
+              <input type="checkbox" x-model="serverModal.enabled"
+                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+              <span class="ml-2 text-sm text-gray-700">Enabled</span>
+            </label>
+          </div>
         </div>
-    </div>
 
-    <!-- Notifications -->
-    <div x-cloak>
-        <div
-            class="group pointer-events-none fixed inset-x-8 z-99 flex flex-col gap-2 bg-transparent px-6 py-6 max-w-full md:left-[unset] md:right-0 top-0 md:w-96">
-            <template x-for="(notification, index) in notifications" :key="notification.id">
-                <div>
-                    <template x-if="notification.variant === 'success'">
-                        <div class="pointer-events-auto relative rounded-md border border-green-500 bg-white text-neutral-600"
-                            role="alert" x-data="notificationData(notification.id)" x-cloak x-show="isVisible"
-                            x-transition:enter="transition duration-300 ease-out"
-                            x-transition:enter-end="translate-y-0" x-transition:enter-start="-translate-y-8"
-                            x-transition:leave="transition duration-300 ease-in"
-                            x-transition:leave-end="opacity-0 translate-x-24"
-                            x-transition:leave-start="translate-x-0 opacity-100">
-                            <div
-                                class="flex w-full items-center gap-2.5 bg-green-500/10 rounded-md p-4 transition-all duration-300">
-                                <div class="rounded-full bg-green-500/15 p-0.5 text-green-500" aria-hidden="true">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                                        class="size-5" aria-hidden="true">
-                                        <path fill-rule="evenodd"
-                                            d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div class="flex flex-col gap-2">
-                                    <h3 class="text-sm font-semibold text-green-500">Success!</h3>
-                                    <p x-show="notification.message" class="text-pretty text-sm"
-                                        x-text="notification.message"></p>
-                                </div>
-                                <button type="button" class="ml-auto" aria-label="dismiss notification"
-                                    @click="(isVisible = false), removeNotification(notification.id)">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor"
-                                        fill="none" stroke-width="2" class="size-5 shrink-0" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </template>
-                    <template x-if="notification.variant === 'error'">
-                        <div class="pointer-events-auto relative rounded-md border border-red-500 bg-white text-neutral-600"
-                            role="alert" x-data="notificationData(notification.id)" x-cloak x-show="isVisible"
-                            x-transition:enter="transition duration-300 ease-out"
-                            x-transition:enter-end="translate-y-0" x-transition:enter-start="-translate-y-8"
-                            x-transition:leave="transition duration-300 ease-in"
-                            x-transition:leave-end="translate-x-24 opacity-0"
-                            x-transition:leave-start="translate-x-0 opacity-100">
-                            <div
-                                class="flex w-full items-center gap-2.5 bg-red-500/10 rounded-md p-4 transition-all duration-300">
-                                <div class="rounded-full bg-red-500/15 p-0.5 text-red-500" aria-hidden="true">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                                        class="size-5" aria-hidden="true">
-                                        <path fill-rule="evenodd"
-                                            d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div class="flex flex-col gap-2">
-                                    <h3 class="text-sm font-semibold text-red-500">Error!</h3>
-                                    <p x-show="notification.message" class="text-pretty text-sm"
-                                        x-text="notification.message"></p>
-                                </div>
-                                <button type="button" class="ml-auto" aria-label="dismiss notification"
-                                    @click="(isVisible = false), removeNotification(notification.id)">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor"
-                                        fill="none" stroke-width="2" class="size-5 shrink-0" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </template>
+        <div class="mt-6 flex justify-end space-x-3">
+          <button @click="closeServerModal()"
+            class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
+            Cancel
+          </button>
+          <button @click="saveServer()" :disabled="serverModal.saving"
+            class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
+            <span x-show="!serverModal.saving" x-text="serverModal.editIndex !== null ? 'Save' : 'Create'">
+            </span>
+            <span x-show="serverModal.saving">Saving...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Client Modal -->
+  <div x-show="clientModal.open" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+    <div class="flex items-center justify-center min-h-screen px-4">
+      <div class="fixed inset-0 bg-black opacity-50" @click="closeClientModal()"></div>
+      <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4"
+          x-text="clientModal.editIndex !== null ? 'Edit Client' : 'Add Client'"></h3>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Key (connection URL)</label>
+            <input type="text" x-model="clientModal.key"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+              placeholder="z32 encoded key from server">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Local Port</label>
+            <input type="number" x-model.number="clientModal.port"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="9000">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Local Host (optional)</label>
+            <input type="text" x-model="clientModal.host"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="127.0.0.1">
+          </div>
+          <div>
+            <label class="flex items-center">
+              <input type="checkbox" x-model="clientModal.enabled"
+                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+              <span class="ml-2 text-sm text-gray-700">Enabled</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="mt-6 flex justify-end space-x-3">
+          <button @click="closeClientModal()"
+            class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
+            Cancel
+          </button>
+          <button @click="saveClient()" :disabled="clientModal.saving"
+            class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
+            <span x-show="!clientModal.saving" x-text="clientModal.editIndex !== null ? 'Save' : 'Create'">
+            </span>
+            <span x-show="clientModal.saving">Saving...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR Code Modal -->
+  <div x-show="qrModal.open" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+    <div class="flex items-center justify-center min-h-screen px-4">
+      <div class="fixed inset-0 bg-black opacity-50" @click="closeQrModal()"></div>
+      <div class="relative bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4 text-center">Connection URL</h3>
+        <div id="qrcode-container" class="flex justify-center mb-4"></div>
+        <p class="text-center text-sm text-gray-600 font-mono break-all" x-text="qrModal.url"></p>
+        <div class="mt-4 flex justify-center">
+          <button @click="closeQrModal()"
+            class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifications -->
+  <div x-cloak>
+    <div
+      class="group pointer-events-none fixed inset-x-8 z-99 flex flex-col gap-2 bg-transparent px-6 py-6 max-w-full md:left-[unset] md:right-0 top-0 md:w-96">
+      <template x-for="(notification, index) in notifications" :key="notification.id">
+        <div>
+          <template x-if="notification.variant === 'success'">
+            <div class="pointer-events-auto relative rounded-md border border-green-500 bg-white text-neutral-600"
+              role="alert" x-data="notificationData(notification.id)" x-cloak x-show="isVisible"
+              x-transition:enter="transition duration-300 ease-out"
+              x-transition:enter-end="translate-y-0" x-transition:enter-start="-translate-y-8"
+              x-transition:leave="transition duration-300 ease-in"
+              x-transition:leave-end="opacity-0 translate-x-24"
+              x-transition:leave-start="translate-x-0 opacity-100">
+              <div
+                class="flex w-full items-center gap-2.5 bg-green-500/10 rounded-md p-4 transition-all duration-300">
+                <div class="rounded-full bg-green-500/15 p-0.5 text-green-500" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                    class="size-5" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z"
+                      clip-rule="evenodd" />
+                  </svg>
                 </div>
-            </template>
+                <div class="flex flex-col gap-2">
+                  <h3 class="text-sm font-semibold text-green-500">Success!</h3>
+                  <p x-show="notification.message" class="text-pretty text-sm"
+                    x-text="notification.message"></p>
+                </div>
+                <button type="button" class="ml-auto" aria-label="dismiss notification"
+                  @click="(isVisible = false), removeNotification(notification.id)">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor"
+                    fill="none" stroke-width="2" class="size-5 shrink-0" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </template>
+          <template x-if="notification.variant === 'error'">
+            <div class="pointer-events-auto relative rounded-md border border-red-500 bg-white text-neutral-600"
+              role="alert" x-data="notificationData(notification.id)" x-cloak x-show="isVisible"
+              x-transition:enter="transition duration-300 ease-out"
+              x-transition:enter-end="translate-y-0" x-transition:enter-start="-translate-y-8"
+              x-transition:leave="transition duration-300 ease-in"
+              x-transition:leave-end="translate-x-24 opacity-0"
+              x-transition:leave-start="translate-x-0 opacity-100">
+              <div
+                class="flex w-full items-center gap-2.5 bg-red-500/10 rounded-md p-4 transition-all duration-300">
+                <div class="rounded-full bg-red-500/15 p-0.5 text-red-500" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                    class="size-5" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                      d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"
+                      clip-rule="evenodd" />
+                  </svg>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <h3 class="text-sm font-semibold text-red-500">Error!</h3>
+                  <p x-show="notification.message" class="text-pretty text-sm"
+                    x-text="notification.message"></p>
+                </div>
+                <button type="button" class="ml-auto" aria-label="dismiss notification"
+                  @click="(isVisible = false), removeNotification(notification.id)">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor"
+                    fill="none" stroke-width="2" class="size-5 shrink-0" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </template>
         </div>
+      </template>
     </div>
+  </div>
 
-    <script>
-        /* eslint-disable-next-line no-unused-vars */
-        function appData() {
-            return {
-                loadingState: 'loading',
-                servers: [],
-                clients: [],
-                notifications: [],
-                qrCode: null,
+  <script>
+    /* eslint-disable-next-line no-unused-vars */
+    function appData() {
+      return {
+        loadingState: 'loading',
+        servers: [],
+        clients: [],
+        notifications: [],
+        qrCode: null,
 
-                serverModal: {
-                    open: false,
-                    editIndex: null,
-                    host: '0.0.0.0',
-                    port: 8080,
-                    key: '',
-                    secure: false,
-                    enabled: true,
-                    saving: false
-                },
+        serverModal: {
+          open: false,
+          editIndex: null,
+          host: '0.0.0.0',
+          port: 8080,
+          key: '',
+          secure: false,
+          enabled: true,
+          saving: false
+        },
 
-                clientModal: {
-                    open: false,
-                    editIndex: null,
-                    key: '',
-                    port: 9000,
-                    host: '',
-                    enabled: true,
-                    saving: false
-                },
+        clientModal: {
+          open: false,
+          editIndex: null,
+          key: '',
+          port: 9000,
+          host: '',
+          enabled: true,
+          saving: false
+        },
 
-                qrModal: {
-                    open: false,
-                    url: ''
-                },
+        qrModal: {
+          open: false,
+          url: ''
+        },
 
-                generateHexKey() {
-                    return Array.from(
-                        crypto.getRandomValues(new Uint8Array(32)),
-                        b => b.toString(16).padStart(2, '0'),
-                    ).join('');
-                },
+        generateHexKey() {
+          return Array.from(
+            crypto.getRandomValues(new Uint8Array(32)),
+            b => b.toString(16).padStart(2, '0'),
+          ).join('');
+        },
 
-                async init() {
-                    await this.loadSettings();
-                    document.addEventListener('visibilitychange', () => {
-                        if (document.visibilityState === 'visible') {
-                            void this.loadSettings();
-                        }
-                    });
-                },
+        async init() {
+          await this.loadSettings();
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+              void this.loadSettings();
+            }
+          });
+        },
 
-                async loadSettings() {
-                    try {
-                        const response = await fetch('/api/settings', {
-                            signal: AbortSignal.timeout(7000),
-                        });
-                        const data = await response.json();
-                        this.servers = data.holesailServers || [];
-                        this.clients = data.holesailClients || [];
-                        this.loadingState = 'loaded';
-                    } catch (err) {
-                        console.error('loadSettings error', err);
-                        if (this.loadingState !== 'loaded') {
-                            this.loadingState = 'error';
-                        } else {
-                            this.addNotification({
-                                variant: 'error',
-                                message: 'Failed to load settings.',
-                            });
-                        }
-                    }
-                },
+        async loadSettings() {
+          try {
+            const response = await fetch('/api/settings', {
+              signal: AbortSignal.timeout(7000),
+            });
+            const data = await response.json();
+            this.servers = data.holesailServers || [];
+            this.clients = data.holesailClients || [];
+            this.loadingState = 'loaded';
+          } catch (err) {
+            console.error('loadSettings error', err);
+            if (this.loadingState !== 'loaded') {
+              this.loadingState = 'error';
+            } else {
+              this.addNotification({
+                variant: 'error',
+                message: 'Failed to load settings.',
+              });
+            }
+          }
+        },
 
-                openServerModal(index = null) {
-                    if (index !== null) {
-                        const server = this.servers[index];
-                        this.serverModal = {
-                            open: true,
-                            editIndex: index,
-                            host: server.host,
-                            port: server.port,
-                            key: server.key,
-                            secure: server.secure,
-                            enabled: server.enabled,
-                            saving: false
-                        };
-                    } else {
-                        this.serverModal = {
-                            open: true,
-                            editIndex: null,
-                            host: '0.0.0.0',
-                            port: 8080,
-                            key: '',
-                            secure: false,
-                            enabled: true,
-                            saving: false
-                        };
-                    }
-                },
-
-                closeServerModal() {
-                    this.serverModal.open = false;
-                },
-
-                async saveServer() {
-                    this.serverModal.saving = true;
-                    try {
-                        const body = {
-                            host: this.serverModal.host,
-                            port: this.serverModal.port,
-                            secure: this.serverModal.secure,
-                            enabled: this.serverModal.enabled
-                        };
-                        if (this.serverModal.key) {
-                            body.key = this.serverModal.key;
-                        }
-
-                        const isEdit = this.serverModal.editIndex !== null;
-                        const url = isEdit
-                            ? `/api/servers/${this.serverModal.editIndex}`
-                            : '/api/servers';
-                        const method = isEdit ? 'PATCH' : 'POST';
-
-                        const response = await fetch(url, {
-                            method,
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(body),
-                            signal: AbortSignal.timeout(15000)
-                        });
-
-                        const result = await response.json();
-                        if (!response.ok) {
-                            throw new Error(result.error || 'Failed to save server');
-                        }
-
-                        this.addNotification({
-                            variant: 'success',
-                            message: isEdit ? 'Server updated.' : 'Server created.',
-                        });
-                        this.closeServerModal();
-                        await this.loadSettings();
-                    } catch (err) {
-                        console.error('saveServer error', err);
-                        this.addNotification({
-                            variant: 'error',
-                            message: err.message || 'Failed to save server.',
-                        });
-                    } finally {
-                        this.serverModal.saving = false;
-                    }
-                },
-
-                async deleteServer(index) {
-                    if (!confirm('Are you sure you want to delete this server?')) {
-                        return;
-                    }
-                    try {
-                        const response = await fetch(`/api/servers/${index}`, {
-                            method: 'DELETE',
-                            signal: AbortSignal.timeout(15000)
-                        });
-                        if (!response.ok) {
-                            throw new Error('Failed to delete server');
-                        }
-                        this.addNotification({
-                            variant: 'success',
-                            message: 'Server deleted.',
-                        });
-                        await this.loadSettings();
-                    } catch (err) {
-                        console.error('deleteServer error', err);
-                        this.addNotification({
-                            variant: 'error',
-                            message: 'Failed to delete server.',
-                        });
-                    }
-                },
-
-                openClientModal(index = null) {
-                    if (index !== null) {
-                        const client = this.clients[index];
-                        this.clientModal = {
-                            open: true,
-                            editIndex: index,
-                            key: client.key,
-                            port: client.port,
-                            host: client.host || '',
-                            enabled: client.enabled,
-                            saving: false
-                        };
-                    } else {
-                        this.clientModal = {
-                            open: true,
-                            editIndex: null,
-                            key: '',
-                            port: 9000,
-                            host: '',
-                            enabled: true,
-                            saving: false
-                        };
-                    }
-                },
-
-                closeClientModal() {
-                    this.clientModal.open = false;
-                },
-
-                async saveClient() {
-                    this.clientModal.saving = true;
-                    try {
-                        const body = {
-                            key: this.clientModal.key,
-                            port: this.clientModal.port,
-                            enabled: this.clientModal.enabled
-                        };
-                        if (this.clientModal.host) {
-                            body.host = this.clientModal.host;
-                        }
-
-                        const isEdit = this.clientModal.editIndex !== null;
-                        const url = isEdit
-                            ? `/api/clients/${this.clientModal.editIndex}`
-                            : '/api/clients';
-                        const method = isEdit ? 'PATCH' : 'POST';
-
-                        const response = await fetch(url, {
-                            method,
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(body),
-                            signal: AbortSignal.timeout(15000)
-                        });
-
-                        const result = await response.json();
-                        if (!response.ok) {
-                            throw new Error(result.error || 'Failed to save client');
-                        }
-
-                        this.addNotification({
-                            variant: 'success',
-                            message: isEdit ? 'Client updated.' : 'Client created.',
-                        });
-                        this.closeClientModal();
-                        await this.loadSettings();
-                    } catch (err) {
-                        console.error('saveClient error', err);
-                        this.addNotification({
-                            variant: 'error',
-                            message: err.message || 'Failed to save client.',
-                        });
-                    } finally {
-                        this.clientModal.saving = false;
-                    }
-                },
-
-                async deleteClient(index) {
-                    if (!confirm('Are you sure you want to delete this client?')) {
-                        return;
-                    }
-                    try {
-                        const response = await fetch(`/api/clients/${index}`, {
-                            method: 'DELETE',
-                            signal: AbortSignal.timeout(15000)
-                        });
-                        if (!response.ok) {
-                            throw new Error('Failed to delete client');
-                        }
-                        this.addNotification({
-                            variant: 'success',
-                            message: 'Client deleted.',
-                        });
-                        await this.loadSettings();
-                    } catch (err) {
-                        console.error('deleteClient error', err);
-                        this.addNotification({
-                            variant: 'error',
-                            message: 'Failed to delete client.',
-                        });
-                    }
-                },
-
-                async showQrModal(url) {
-                    this.qrModal.url = url;
-                    this.qrModal.open = true;
-
-                    await this.$nextTick();
-
-                    if (!this.qrCode) {
-                        while (!window.QRCodeStyling) {
-                            await new Promise(resolve => setTimeout(resolve, 100));
-                        }
-                        this.qrCode = new window.QRCodeStyling({
-                            type: 'svg',
-                            width: 250,
-                            height: 250,
-                            data: url,
-                            dotsOptions: {
-                                color: '#000000',
-                                type: 'rounded-sm',
-                            },
-                            backgroundOptions: {
-                                color: '#ffffff',
-                            },
-                            imageOptions: {
-                                imageSize: 0.3,
-                                margin: 4,
-                                crossOrigin: 'anonymous',
-                            },
-                            image: '/images/logo-150x150.png',
-                            margin: 0,
-                        });
-                        this.qrCode.append(document.getElementById('qrcode-container'));
-                    } else {
-                        this.qrCode.update({ data: url });
-                    }
-                },
-
-                closeQrModal() {
-                    this.qrModal.open = false;
-                },
-
-                async copyToClipboard(text, label) {
-                    try {
-                        if (!navigator.clipboard) {
-                            this.addNotification({
-                                variant: 'error',
-                                message: 'Clipboard API not supported. Is the connection secure? (https)',
-                            });
-                            return;
-                        }
-                        await navigator.clipboard.writeText(text);
-                        this.addNotification({
-                            variant: 'success',
-                            message: `${label} copied to clipboard.`,
-                        });
-                    } catch (err) {
-                        console.error('copyToClipboard error', err);
-                        this.addNotification({
-                            variant: 'error',
-                            message: `Failed to copy ${label} to clipboard.`,
-                        });
-                    }
-                },
-
-                addNotification({ variant = 'success', message = null }) {
-                    const id = Date.now();
-                    const notification = { id, variant, message };
-                    if (this.notifications.length > 20) {
-                        this.notifications.splice(20);
-                    }
-                    this.notifications.unshift(notification);
-                },
-
-                removeNotification(id) {
-                    setTimeout(() => {
-                        this.notifications = this.notifications.filter(
-                            (notification) => notification.id !== id,
-                        );
-                    }, 400);
-                },
+        openServerModal(index = null) {
+          if (index !== null) {
+            const server = this.servers[index];
+            this.serverModal = {
+              open: true,
+              editIndex: index,
+              host: server.host,
+              port: server.port,
+              key: server.key,
+              secure: server.secure,
+              enabled: server.enabled,
+              saving: false
             };
-        }
-
-        /* eslint-disable-next-line no-unused-vars */
-        function notificationData(notificationId) {
-            return {
-                isVisible: false,
-                init() {
-                    this.$nextTick(() => {
-                        this.isVisible = true;
-                        setTimeout(() => {
-                            this.isVisible = false;
-                            this.removeNotification(notificationId);
-                        }, 4000);
-                    });
-                },
+          } else {
+            this.serverModal = {
+              open: true,
+              editIndex: null,
+              host: '0.0.0.0',
+              port: 8080,
+              key: '',
+              secure: false,
+              enabled: true,
+              saving: false
             };
-        }
-    </script>
+          }
+        },
+
+        closeServerModal() {
+          this.serverModal.open = false;
+        },
+
+        async saveServer() {
+          this.serverModal.saving = true;
+          try {
+            const body = {
+              host: this.serverModal.host,
+              port: this.serverModal.port,
+              secure: this.serverModal.secure,
+              enabled: this.serverModal.enabled
+            };
+            if (this.serverModal.key) {
+              body.key = this.serverModal.key;
+            }
+
+            const isEdit = this.serverModal.editIndex !== null;
+            const url = isEdit
+              ? `/api/servers/${this.serverModal.editIndex}`
+              : '/api/servers';
+            const method = isEdit ? 'PATCH' : 'POST';
+
+            const response = await fetch(url, {
+              method,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+              signal: AbortSignal.timeout(15000)
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+              throw new Error(result.error || 'Failed to save server');
+            }
+
+            this.addNotification({
+              variant: 'success',
+              message: isEdit ? 'Server updated.' : 'Server created.',
+            });
+            this.closeServerModal();
+            await this.loadSettings();
+          } catch (err) {
+            console.error('saveServer error', err);
+            this.addNotification({
+              variant: 'error',
+              message: err.message || 'Failed to save server.',
+            });
+          } finally {
+            this.serverModal.saving = false;
+          }
+        },
+
+        async deleteServer(index) {
+          if (!confirm('Are you sure you want to delete this server?')) {
+            return;
+          }
+          try {
+            const response = await fetch(`/api/servers/${index}`, {
+              method: 'DELETE',
+              signal: AbortSignal.timeout(15000)
+            });
+            if (!response.ok) {
+              throw new Error('Failed to delete server');
+            }
+            this.addNotification({
+              variant: 'success',
+              message: 'Server deleted.',
+            });
+            await this.loadSettings();
+          } catch (err) {
+            console.error('deleteServer error', err);
+            this.addNotification({
+              variant: 'error',
+              message: 'Failed to delete server.',
+            });
+          }
+        },
+
+        openClientModal(index = null) {
+          if (index !== null) {
+            const client = this.clients[index];
+            this.clientModal = {
+              open: true,
+              editIndex: index,
+              key: client.key,
+              port: client.port,
+              host: client.host || '',
+              enabled: client.enabled,
+              saving: false
+            };
+          } else {
+            this.clientModal = {
+              open: true,
+              editIndex: null,
+              key: '',
+              port: 9000,
+              host: '',
+              enabled: true,
+              saving: false
+            };
+          }
+        },
+
+        closeClientModal() {
+          this.clientModal.open = false;
+        },
+
+        async saveClient() {
+          this.clientModal.saving = true;
+          try {
+            const body = {
+              key: this.clientModal.key,
+              port: this.clientModal.port,
+              enabled: this.clientModal.enabled
+            };
+            if (this.clientModal.host) {
+              body.host = this.clientModal.host;
+            }
+
+            const isEdit = this.clientModal.editIndex !== null;
+            const url = isEdit
+              ? `/api/clients/${this.clientModal.editIndex}`
+              : '/api/clients';
+            const method = isEdit ? 'PATCH' : 'POST';
+
+            const response = await fetch(url, {
+              method,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+              signal: AbortSignal.timeout(15000)
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+              throw new Error(result.error || 'Failed to save client');
+            }
+
+            this.addNotification({
+              variant: 'success',
+              message: isEdit ? 'Client updated.' : 'Client created.',
+            });
+            this.closeClientModal();
+            await this.loadSettings();
+          } catch (err) {
+            console.error('saveClient error', err);
+            this.addNotification({
+              variant: 'error',
+              message: err.message || 'Failed to save client.',
+            });
+          } finally {
+            this.clientModal.saving = false;
+          }
+        },
+
+        async deleteClient(index) {
+          if (!confirm('Are you sure you want to delete this client?')) {
+            return;
+          }
+          try {
+            const response = await fetch(`/api/clients/${index}`, {
+              method: 'DELETE',
+              signal: AbortSignal.timeout(15000)
+            });
+            if (!response.ok) {
+              throw new Error('Failed to delete client');
+            }
+            this.addNotification({
+              variant: 'success',
+              message: 'Client deleted.',
+            });
+            await this.loadSettings();
+          } catch (err) {
+            console.error('deleteClient error', err);
+            this.addNotification({
+              variant: 'error',
+              message: 'Failed to delete client.',
+            });
+          }
+        },
+
+        async showQrModal(url) {
+          this.qrModal.url = url;
+          this.qrModal.open = true;
+
+          await this.$nextTick();
+
+          if (!this.qrCode) {
+            while (!window.QRCodeStyling) {
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            this.qrCode = new window.QRCodeStyling({
+              type: 'svg',
+              width: 250,
+              height: 250,
+              data: url,
+              dotsOptions: {
+                color: '#000000',
+                type: 'rounded-sm',
+              },
+              backgroundOptions: {
+                color: '#ffffff',
+              },
+              imageOptions: {
+                imageSize: 0.3,
+                margin: 4,
+                crossOrigin: 'anonymous',
+              },
+              image: '/images/logo-150x150.png',
+              margin: 0,
+            });
+            this.qrCode.append(document.getElementById('qrcode-container'));
+          } else {
+            this.qrCode.update({ data: url });
+          }
+        },
+
+        closeQrModal() {
+          this.qrModal.open = false;
+        },
+
+        async copyToClipboard(text, label) {
+          try {
+            if (!navigator.clipboard) {
+              this.addNotification({
+                variant: 'error',
+                message: 'Clipboard API not supported. Is the connection secure? (https)',
+              });
+              return;
+            }
+            await navigator.clipboard.writeText(text);
+            this.addNotification({
+              variant: 'success',
+              message: `${label} copied to clipboard.`,
+            });
+          } catch (err) {
+            console.error('copyToClipboard error', err);
+            this.addNotification({
+              variant: 'error',
+              message: `Failed to copy ${label} to clipboard.`,
+            });
+          }
+        },
+
+        addNotification({ variant = 'success', message = null }) {
+          const id = Date.now();
+          const notification = { id, variant, message };
+          if (this.notifications.length > 20) {
+            this.notifications.splice(20);
+          }
+          this.notifications.unshift(notification);
+        },
+
+        removeNotification(id) {
+          setTimeout(() => {
+            this.notifications = this.notifications.filter(
+              (notification) => notification.id !== id,
+            );
+          }, 400);
+        },
+      };
+    }
+
+    /* eslint-disable-next-line no-unused-vars */
+    function notificationData(notificationId) {
+      return {
+        isVisible: false,
+        init() {
+          this.$nextTick(() => {
+            this.isVisible = true;
+            setTimeout(() => {
+              this.isVisible = false;
+              this.removeNotification(notificationId);
+            }, 4000);
+          });
+        },
+      };
+    }
+  </script>
 </body>
 
 </html>
