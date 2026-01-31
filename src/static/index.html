@@ -18,6 +18,18 @@
   <div class="min-h-screen bg-gray-100">
     <div class="container mx-auto py-8 px-4 max-w-4xl" x-cloak>
       <h1 class="text-3xl font-bold text-center text-gray-700 mb-8">Holesail Switchboard</h1>
+      <p class="text-center text-gray-500 mb-8" x-show="subtitleParts.length > 0">
+        <template x-for="(part, partIndex) in subtitleParts" :key="partIndex">
+          <span>
+            <template x-if="part.startsWith('https://')">
+              <a class="text-blue-600 hover:text-blue-800 underline break-all" :href="part" target="_blank" rel="noopener noreferrer" x-text="part"></a>
+            </template>
+            <template x-if="!part.startsWith('https://')">
+              <span x-text="part"></span>
+            </template>
+          </span>
+        </template>
+      </p>
 
       <!-- Loading State -->
       <div class="flex justify-center py-12" x-show="loadingState === 'loading'">
@@ -56,10 +68,10 @@
             <ul class="divide-y divide-gray-200">
               <template x-for="(server, index) in servers" :key="index">
                 <li class="p-4 hover:bg-gray-50">
-                  <div class="flex items-center justify-between">
+                  <div class="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex items-center space-x-3">
                       <!-- Status Indicator -->
-                      <span class="relative flex h-3 w-3">
+                      <span class="relative flex h-3 w-3 shrink-0">
                         <span x-show="server.state === 'running'"
                           class="absolute inline-flex h-full w-full rounded-full bg-green-500">
                         </span>
@@ -81,12 +93,13 @@
                             class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mr-2">
                             Secure
                           </span>
-                          <span class="text-gray-400"
-                            x-text="'Key: ' + server.key.substring(0, 8) + '...'"></span>
+                          <span class="text-gray-400 break-all"
+                            x-show="server.hsInfoUrl && !server.secure"
+                            x-text="server.hsInfoUrl"></span>
                         </p>
                       </div>
                     </div>
-                    <div class="flex items-center space-x-2">
+                    <div class="flex w-full items-center justify-end space-x-2 sm:w-auto">
                       <template x-if="server.hsInfoUrl">
                         <button @click="copyToClipboard(server.hsInfoUrl, 'Connection URL')"
                           class="p-2 text-gray-500 hover:text-gray-700" title="Copy URL">
@@ -99,7 +112,7 @@
                         </button>
                       </template>
                       <template x-if="server.hsInfoUrl">
-                        <button @click="showQrModal(server.hsInfoUrl)"
+                        <button @click="showQrModal(server.hsInfoUrl, server.secure)"
                           class="p-2 text-gray-500 hover:text-gray-700" title="Show QR Code">
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none"
                             viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
@@ -228,42 +241,77 @@
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Host</label>
-            <input type="text" x-model="serverModal.host"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="0.0.0.0">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Port</label>
-            <input type="number" x-model.number="serverModal.port"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="8080">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Key (64 hex characters)</label>
-            <div class="flex gap-2">
-              <input type="text" x-model="serverModal.key"
-                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                placeholder="Leave empty to auto-generate">
-              <button @click="serverModal.key = generateHexKey()"
-                class="px-3 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
-                Generate
-              </button>
-            </div>
-          </div>
-          <div class="flex items-center space-x-4">
-            <label class="flex items-center">
-              <input type="checkbox" x-model="serverModal.secure"
-                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-              <span class="ml-2 text-sm text-gray-700">Secure</span>
-            </label>
             <label class="flex items-center">
               <input type="checkbox" x-model="serverModal.enabled"
                 class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
               <span class="ml-2 text-sm text-gray-700">Enabled</span>
             </label>
           </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Host</label>
+            <input type="text" x-model="serverModal.host" :disabled="!serverModal.enabled"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:border-gray-200 disabled:cursor-not-allowed"
+              placeholder="localhost or an ip/hostname in your local network">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Port</label>
+            <input type="number" x-model.number="serverModal.port" :disabled="!serverModal.enabled"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:border-gray-200 disabled:cursor-not-allowed"
+              placeholder="8080">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Key (64 hex characters)</label>
+            <div class="flex gap-2">
+              <div class="relative flex-1">
+                <input :type="serverModal.showKey ? 'text' : 'password'" x-model="serverModal.key"
+                  :disabled="!serverModal.enabled"
+                  class="w-full px-3 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm disabled:bg-gray-100 disabled:text-gray-500 disabled:border-gray-200 disabled:cursor-not-allowed"
+                  placeholder="Should be long and random">
+                <button type="button" @click.prevent="serverModal.showKey = !serverModal.showKey"
+                  :disabled="!serverModal.enabled"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 rounded hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:hover:bg-transparent"
+                  :aria-label="serverModal.showKey ? 'Hide key' : 'Show key'"
+                  :title="serverModal.showKey ? 'Hide key' : 'Show key'">
+                  <svg x-show="!serverModal.showKey" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="size-5"
+                    aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <svg x-show="serverModal.showKey" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="size-5"
+                    aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M3 3l18 18M10.477 10.48a3 3 0 104.243 4.243" />
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M7.11 7.113C5.37 8.273 3.991 9.922 3 12c1.274 4.057 5.064 7 9.542 7 1.41 0 2.763-.291 4.007-.818M9.88 5.08A9.96 9.96 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.98 9.98 0 01-4.293 5.037" />
+                  </svg>
+                </button>
+              </div>
+              <button @click="serverModal.key = generateHexKey()"
+                :disabled="!serverModal.enabled"
+                class="px-3 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-200">
+                Generate
+              </button>
+            </div>
+          </div>
+          <div>
+            <label class="flex items-center">
+              <input type="checkbox" x-model="serverModal.secure" :disabled="!serverModal.enabled"
+                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+              <span class="ml-2 text-sm text-gray-700">
+                Secure
+              </span>
+            </label>
+            <p class="mt-1 text-xs text-gray-500">
+              Check when this server is only meant for personal use. Generated URL must not be shared with others.
+            </p>
+          </div>
         </div>
+
+        <p x-show="serverModal.savingError" class="mt-2 text-sm text-red-500" x-text="serverModal.savingError">
+        </p>
 
         <div class="mt-6 flex justify-end space-x-3">
           <button @click="closeServerModal()"
@@ -341,6 +389,9 @@
         <h3 class="text-lg font-semibold text-gray-900 mb-4 text-center">Connection URL</h3>
         <div id="qrcode-container" class="flex justify-center mb-4"></div>
         <p class="text-center text-sm text-gray-600 font-mono break-all" x-text="qrModal.url"></p>
+        <p class="text-center text-sm text-red-500 font-bold mt-2" x-show="qrModal.secure">
+          This URL must not be shared with others!
+        </p>
         <div class="mt-4 flex justify-center">
           <button @click="closeQrModal()"
             class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
@@ -435,6 +486,9 @@
         loadingState: 'loading',
         servers: [],
         clients: [],
+        subtitle: '',
+        subtitleParts: [],
+        lastLoadSettings: 0,
         notifications: [],
         qrCode: null,
 
@@ -444,6 +498,7 @@
           host: '0.0.0.0',
           port: 8080,
           key: '',
+          showKey: false,
           secure: false,
           enabled: true,
           saving: false
@@ -465,29 +520,66 @@
         },
 
         generateHexKey() {
-          return Array.from(
+          return `sk_${Array.from(
             crypto.getRandomValues(new Uint8Array(32)),
             b => b.toString(16).padStart(2, '0'),
-          ).join('');
+          ).join('')}`;
+        },
+
+        safeCompareArrays(a, b) {
+          return (
+            JSON.stringify(
+              a.map(item => Object.entries(item).sort())
+            ) === JSON.stringify(
+              b.map(item => Object.entries(item).sort())
+            )
+          );
+        },
+
+        startReloadInterval() {
+          if (this.reloadSettingsInterval) {
+            clearInterval(this.reloadSettingsInterval);
+          }
+          this.reloadSettingsInterval = setInterval(() => {
+            if (Date.now() - this.lastLoadSettings > 10_000) {
+              void this.loadSettings();
+            }
+          }, 1000);
         },
 
         async init() {
           await this.loadSettings();
+          this.startReloadInterval();
           document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
               void this.loadSettings();
+              this.startReloadInterval();
+            } else {
+              if (this.reloadSettingsInterval) {
+                clearInterval(this.reloadSettingsInterval);
+                this.reloadSettingsInterval = null;
+              }
             }
           });
         },
 
         async loadSettings() {
+          this.lastLoadSettings = Date.now();
           try {
             const response = await fetch('/api/settings', {
               signal: AbortSignal.timeout(7000),
             });
             const data = await response.json();
-            this.servers = data.holesailServers || [];
-            this.clients = data.holesailClients || [];
+            if (!this.safeCompareArrays(this.servers, data.servers)) {
+              this.servers = data.servers;
+            }
+            if (!this.safeCompareArrays(this.clients, data.clients)) {
+              this.clients = data.clients;
+            }
+            if (data.subtitle !== this.subtitle) {
+              this.subtitle = data.subtitle;
+              this.subtitleParts = (data.subtitle || '').split(/\s/);
+            }
             this.loadingState = 'loaded';
           } catch (err) {
             console.error('loadSettings error', err);
@@ -511,6 +603,7 @@
               host: server.host,
               port: server.port,
               key: server.key,
+              showKey: false,
               secure: server.secure,
               enabled: server.enabled,
               saving: false
@@ -519,9 +612,10 @@
             this.serverModal = {
               open: true,
               editIndex: null,
-              host: '0.0.0.0',
+              host: '',
               port: 8080,
               key: '',
+              showKey: false,
               secure: false,
               enabled: true,
               saving: false
@@ -534,17 +628,33 @@
         },
 
         async saveServer() {
+          if (this.serverModal.savingError) {
+            this.serverModal.savingError = null;
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+          if (this.serverModal.enabled) {
+            if (!this.serverModal.host) {
+              this.serverModal.savingError = 'Host is required';
+              return;
+            }
+            if (!this.serverModal.port) {
+              this.serverModal.savingError = 'Port is required';
+              return;
+            }
+            if (!this.serverModal.key) {
+              this.serverModal.savingError = 'Key is required';
+              return;
+            }
+          }
           this.serverModal.saving = true;
           try {
             const body = {
+              enabled: this.serverModal.enabled,
               host: this.serverModal.host,
               port: this.serverModal.port,
               secure: this.serverModal.secure,
-              enabled: this.serverModal.enabled
+              key: this.serverModal.key,
             };
-            if (this.serverModal.key) {
-              body.key = this.serverModal.key;
-            }
 
             const isEdit = this.serverModal.editIndex !== null;
             const url = isEdit
@@ -709,9 +819,10 @@
           }
         },
 
-        async showQrModal(url) {
+        async showQrModal(url, secure) {
           this.qrModal.url = url;
           this.qrModal.open = true;
+          this.qrModal.secure = secure;
 
           await this.$nextTick();
 
