@@ -5,7 +5,7 @@ const pluginHtml = require('eslint-plugin-html');
 
 module.exports = [
   {
-    ignores: ['node_modules/**', '.DS_Store'],
+    ignores: ['node_modules/**', 'dist/**'],
   },
   js.configs.recommended,
   pluginPromise.configs['flat/recommended'],

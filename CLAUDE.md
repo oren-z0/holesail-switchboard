@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Holesail Server Manager is a web interface to manage a [holesail-server](https://github.com/holesail/holesail-server) instance with a predefined target server. It provides seed management, public key display with QR codes, and connection management.
+Holesail Switchboard is a web interface to manage multiple [holesail](https://github.com/holesail/holesail) servers and clients. It provides a centralized dashboard for creating, editing, and monitoring peer-to-peer connections.
 
 ## Commands
 
@@ -21,21 +21,40 @@ npm run docker:build-to-registry  # Build multi-platform Docker image
 ## Architecture
 
 **Backend**: Single Fastify server (`src/server.js`) with REST API endpoints:
-- `GET /api/settings` - Returns current seed and public key
-- `POST /api/settings` - Updates seed and restarts holesail-server
+- `GET /api/settings` - Returns all servers and clients with their runtime state
+- `POST /api/servers` - Create a new holesail server
+- `PATCH /api/servers/:index` - Update a server (restarts it with new config)
+- `DELETE /api/servers/:index` - Delete a server
+- `POST /api/clients` - Create a new holesail client
+- `PATCH /api/clients/:index` - Update a client
+- `DELETE /api/clients/:index` - Delete a client
 
 **Frontend**: Alpine.js SPA (`src/static/index.html`) with Tailwind CSS styling
 
-**Data persistence**: JSON file (`data/hsm.json`) storing the seed
+**Data persistence**: JSON file (`data/hssb.json`) storing server and client configurations
 
-**Integration**: Uses `holesail-server` npm package for peer-to-peer connections
+**Data model**:
+```json
+{
+  "holesailServers": [
+    { "host": "0.0.0.0", "port": 8080, "key": "64hexchars", "secure": false, "enabled": true }
+  ],
+  "holesailClients": [
+    { "key": "z32key", "port": 9000, "enabled": true }
+  ]
+}
+```
+
+**Runtime states**: "initializing" → "running" | "failed" | "disabled"
+
+**Integration**: Uses `holesail` npm package directly for both server and client connections
 
 ## Environment Variables
 
 Copy `.env.example` to `.env`. Key variables:
-- `HSM_DATA_FILE` - Path to seed storage file
-- `HSM_PORT` / `HSM_HOST` - Web server binding
-- `HSM_TARGET_PORT` / `HSM_TARGET_ADDRESS` - Target server for holesail tunneling
+- `HSSB_DATA_FILE` - Path to JSON state file (required)
+- `HSSB_PORT` / `HSSB_HOST` - Web server binding
+- `HSSB_CLIENT_HOST` - Default host for clients (optional, defaults to 127.0.0.1)
 
 ## Code Style
 
@@ -48,7 +67,8 @@ ESLint enforces:
 
 ## Key Constraints
 
-- Seeds must be exactly 64 hexadecimal characters
+- Server keys must be exactly 64 hexadecimal characters
+- Client keys are z32 encoded strings from the server's public key
 - No test suite currently exists
 - JS files use CommonJS (`sourceType: 'script'`)
 - HTML files use ES modules
