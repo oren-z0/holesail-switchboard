@@ -12,9 +12,11 @@ const dataFile = process.env.HSSB_DATA_FILE && (
 );
 const clientHost = process.env.HSSB_CLIENT_HOST;
 const subtitle = process.env.HSSB_SUBTITLE;
+const fixedClientPortsString = process.env.HSSB_FIXED_CLIENT_PORTS;
 
 const holesailServers = [];
 const holesailClients = [];
+
 
 // Validation helpers
 function isValidServerKey(key) {
@@ -51,6 +53,28 @@ async function ensureDataFile() {
       console.error('HSSB_DATA_FILE environment variable is not set, see .env.example file.');
       return false;
     }
+    let fixedClientPorts = null;
+    if (fixedClientPortsString) {
+      fixedClientPorts = new Set();
+      for (const fixedClientPortPart of fixedClientPortsString.split(',')) {
+        if (fixedClientPortPart.length <= 5 && /^\d+$/.test(fixedClientPortPart)) {
+          fixedClientPorts.add(parseInt(fixedClientPortPart, 10));
+        } else if (fixedClientPortPart.length <= 11 && /^\d+-\d+$/.test(fixedClientPortPart)) {
+          const [start, end] = fixedClientPortPart.split('-').map(port => parseInt(port, 10));
+          if (end > start && end - start < 1000) {
+            for (let port = start; port <= end; port++) {
+              fixedClientPorts.add(port);
+            }
+          } else {
+            throw new Error(`Invalid fixed client port range: ${
+              fixedClientPortPart
+            } - expected <low>-<high> with <low> < <high> and <high> - <low> < 1000`);
+          }
+        } else {
+          throw new Error('Invalid FIXED_CLIENT_PORTS environment variable format');
+        }
+      }
+    }
     await fs.mkdir(path.dirname(dataFile), { recursive: true });
     try {
       await fs.access(dataFile);
@@ -60,7 +84,24 @@ async function ensureDataFile() {
         holesailServers.push(...data.servers);
       }
       if (Array.isArray(data.clients)) {
-        holesailClients.push(...data.clients);
+        holesailClients.push(...data.clients.filter(
+          (client) => !fixedClientPorts || fixedClientPorts.has(client.port))
+        );
+        if (fixedClientPorts) {
+          const usedPorts = new Set(holesailClients.map(client => client.port));
+          const unusedPorts = [...fixedClientPorts].filter(port => !usedPorts.has(port)).sort((a, b) => a - b);
+          for (const port of unusedPorts) {
+            holesailClients.push({
+              key: '',
+              port,
+              enabled: false,
+            });
+          }
+          if (unusedPorts.length > 0) {
+            fastify.log.info(`Created ${unusedPorts.length} unused clients for ports: ${unusedPorts.join(', ')}`);
+            await saveData();
+          }
+        }
       }
     } catch (error) {
       console.error('Error initializing data file - resetting', error);
@@ -188,6 +229,7 @@ fastify.get('/api/settings', async (_request, _reply) => {
     })),
     ...subtitle ? { subtitle } : {},
     ...clientHost ? { clientHost } : {},
+    fixedClientPorts: Boolean(fixedClientPortsString),
   };
 });
 
@@ -305,6 +347,9 @@ fastify.delete('/api/servers/:index', async (request, reply) => mutationLimit(as
 // POST /api/clients - Create new client
 fastify.post('/api/clients', async (request, reply) => mutationLimit(async () => {
   try {
+    if (fixedClientPortsString) {
+      return reply.code(403).send({ error: 'Unauthorized to create clients' });
+    }
     const { key, port, enabled } = request.body;
 
     if (!isValidClientKey(key)) {
@@ -367,6 +412,9 @@ fastify.patch('/api/clients/:index', async (request, reply) => mutationLimit(asy
         return reply.code(400).send({ error: 'Port is required when client is enabled' });
       }
     }
+    if (fixedClientPortsString && port !== holesailClients[index].port) {
+      return reply.code(403).send({ error: 'Unauthorized to change client port' });
+    }
 
     await stopClient(index);
     holesailClients[index] = { key, port, enabled };
@@ -382,6 +430,9 @@ fastify.patch('/api/clients/:index', async (request, reply) => mutationLimit(asy
 // DELETE /api/clients/:index - Delete client
 fastify.delete('/api/clients/:index', async (request, reply) => mutationLimit(async () => {
   try {
+    if (fixedClientPortsString) {
+      return reply.code(403).send({ error: 'Unauthorized to delete clients' });
+    }
     const index = parseInt(request.params.index, 10);
     if (typeof index !== 'number' || Number.isNaN(index) || index < 0 || index >= holesailClients.length) {
       return reply.code(404).send({ error: 'Client not found' });
