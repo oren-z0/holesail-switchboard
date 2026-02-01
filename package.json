@@ -3,7 +3,10 @@
   "type": "commonjs",
   "version": "2.0.0",
   "description": "A web interface to manage multiple holesail servers and clients",
-  "main": "server.js",
+  "main": "dist/server.js",
+  "bin": {
+    "holesail-switchboard": "./dist/server.js"
+  },
   "scripts": {
     "start": "node dist/server.js",
     "ensure-dist": "mkdir -p dist",
@@ -26,9 +29,11 @@
   },
   "dependencies": {
     "@fastify/static": "^8.3.0",
+    "commander": "^14.0.3",
     "dotenv": "^16.6.1",
     "fastify": "^5.7.2",
     "holesail": "^2.4.1",
+    "open": "^11.0.0",
     "p-limit": "^7.2.0"
   },
   "devDependencies": {

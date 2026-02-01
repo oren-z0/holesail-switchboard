@@ -1,18 +1,42 @@
+#!/usr/bin/env node
 require('dotenv').config();
-const fastify = require('fastify')({ logger: true });
+const { program } = require('commander');
 const path = require('path');
+const os = require('os');
+const fastify = require('fastify')({ logger: true });
 const fs = require('fs/promises');
 const Holesail = require('holesail');
 const { default: pLimit } = require('p-limit');
 
-const dataFile = process.env.HSSB_DATA_FILE && (
-  path.isAbsolute(process.env.HSSB_DATA_FILE)
-    ? process.env.HSSB_DATA_FILE
-    : path.join(__dirname, '..', process.env.HSSB_DATA_FILE)
-);
-const clientHost = process.env.HSSB_CLIENT_HOST;
+// Determine default data directory based on OS
+function getDefaultDataDir() {
+  const appName = 'holesail-switchboard';
+  switch (process.platform) {
+    case 'win32':
+      return path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), appName);
+    case 'darwin':
+      return path.join(os.homedir(), 'Library', 'Application Support', appName);
+    default: // linux and others
+      return path.join(process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'), appName);
+  }
+}
+
+function getDefaultDataFile() {
+  if (process.env.HSSB_DATA_FILE) {
+    return path.isAbsolute(process.env.HSSB_DATA_FILE)
+      ? process.env.HSSB_DATA_FILE
+      : path.join(__dirname, '..', process.env.HSSB_DATA_FILE);
+  }
+  return path.join(getDefaultDataDir(), 'data.json');
+}
+
+let dataFile = getDefaultDataFile();
+let clientHost = process.env.HSSB_CLIENT_HOST || '127.0.0.1';
 const subtitle = process.env.HSSB_SUBTITLE;
 const fixedClientPortsString = process.env.HSSB_FIXED_CLIENT_PORTS;
+
+let webServerHost = process.env.HSSB_HOST || '127.0.0.1';
+let webServerPort = process.env.HSSB_PORT || 3000; // will be converted to a number later
 
 const holesailServers = [];
 const holesailClients = [];
@@ -47,34 +71,9 @@ async function saveData() {
 }
 
 // Initialize data file
-async function ensureDataFile() {
+async function ensureDataFile(fixedClientPorts) {
   try {
-    if (!dataFile) {
-      console.error('HSSB_DATA_FILE environment variable is not set, see .env.example file.');
-      return false;
-    }
-    let fixedClientPorts = null;
-    if (fixedClientPortsString) {
-      fixedClientPorts = new Set();
-      for (const fixedClientPortPart of fixedClientPortsString.split(',')) {
-        if (fixedClientPortPart.length <= 5 && /^\d+$/.test(fixedClientPortPart)) {
-          fixedClientPorts.add(parseInt(fixedClientPortPart, 10));
-        } else if (fixedClientPortPart.length <= 11 && /^\d+-\d+$/.test(fixedClientPortPart)) {
-          const [start, end] = fixedClientPortPart.split('-').map(port => parseInt(port, 10));
-          if (end > start && end - start < 1000) {
-            for (let port = start; port <= end; port++) {
-              fixedClientPorts.add(port);
-            }
-          } else {
-            throw new Error(`Invalid fixed client port range: ${
-              fixedClientPortPart
-            } - expected <low>-<high> with <low> < <high> and <high> - <low> < 1000`);
-          }
-        } else {
-          throw new Error('Invalid FIXED_CLIENT_PORTS environment variable format');
-        }
-      }
-    }
+    console.info(`Using data file: ${dataFile}`);
     await fs.mkdir(path.dirname(dataFile), { recursive: true });
     try {
       await fs.access(dataFile);
@@ -98,7 +97,7 @@ async function ensureDataFile() {
             });
           }
           if (unusedPorts.length > 0) {
-            fastify.log.info(`Created ${unusedPorts.length} unused clients for ports: ${unusedPorts.join(', ')}`);
+            console.info(`Created ${unusedPorts.length} unused clients for ports: ${unusedPorts.join(', ')}`);
             await saveData();
           }
         }
@@ -449,9 +448,31 @@ fastify.delete('/api/clients/:index', async (request, reply) => mutationLimit(as
 }));
 
 // Start the server
-async function start() {
+async function start(openBrowser = false) {
   try {
-    if (!await ensureDataFile()) {
+    let fixedClientPorts = null;
+    if (fixedClientPortsString) {
+      fixedClientPorts = new Set();
+      for (const fixedClientPortPart of fixedClientPortsString.split(',')) {
+        if (fixedClientPortPart.length <= 5 && /^\d+$/.test(fixedClientPortPart)) {
+          fixedClientPorts.add(parseInt(fixedClientPortPart, 10));
+        } else if (fixedClientPortPart.length <= 11 && /^\d+-\d+$/.test(fixedClientPortPart)) {
+          const [start, end] = fixedClientPortPart.split('-').map(port => parseInt(port, 10));
+          if (end > start && end - start < 1000) {
+            for (let port = start; port <= end; port++) {
+              fixedClientPorts.add(port);
+            }
+          } else {
+            throw new Error(`Invalid FIXED_CLIENT_PORTS port range: ${
+              fixedClientPortPart
+            } - expected <low>-<high> with <low> < <high> and <high> - <low> < 1000`);
+          }
+        } else {
+          throw new Error('Invalid FIXED_CLIENT_PORTS environment variable format');
+        }
+      }
+    }
+    if (!await ensureDataFile(fixedClientPorts)) {
       throw new Error('Failed to initialize data file');
     }
 
@@ -463,10 +484,20 @@ async function start() {
       await startClient(i);
     }
 
-    const host = process.env.HSSB_HOST || '0.0.0.0';
-    const port = Number(process.env.HSSB_PORT) || 3000;
-    await fastify.listen({ host, port });
-    fastify.log.info(`Server running on host ${host}, port ${port}.`);
+    await fastify.listen({ host: webServerHost, port: webServerPort });
+    const url = `http://${webServerHost}:${webServerPort}`;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    console.info(`Web dashboard UI running on: ${url}`);
+
+    if (openBrowser) {
+      const open = (await import('open')).default;
+      await open(url).catch((error) => {
+        console.warn('Failed to open browser', error);
+        console.info(
+          'If your environment does not have a browser, you can use the --no-open flag to avoid this error message.',
+        );
+      });
+    }
   } catch (err) {
     console.error(err);
     process.exit(1);
@@ -474,5 +505,39 @@ async function start() {
 }
 
 if (require.main === module) {
-  void start();
+  program
+    .name('holesail-switchboard')
+    .description('A web interface to manage multiple holesail servers and clients')
+    .option('-d, --data-file <path>', 'Path to data file (overrides HSSB_DATA_FILE)')
+    .option('-p, --port <number>', 'Web dashboard UI port (overrides HSSB_PORT)')
+    .option('-H, --host <address>', 'Web dashboard UI host (overrides HSSB_HOST)')
+    .option('-c, --client-host <address>', 'Host for Holesail clients to bind to (overrides HSSB_CLIENT_HOST)')
+    .option('--no-open', 'Don\'t open browser on startup')
+    .parse();
+
+  const cliOptions = program.opts();
+
+  // Override globals with CLI flags (CLI takes precedence)
+  if (cliOptions.dataFile) {
+    dataFile = path.isAbsolute(cliOptions.dataFile)
+      ? cliOptions.dataFile
+      : path.join(process.cwd(), cliOptions.dataFile);
+  }
+  if (cliOptions.port) {
+    webServerPort = cliOptions.port;
+  }
+  if (cliOptions.host) {
+    webServerHost = cliOptions.host;
+  }
+  if (cliOptions.clientHost) {
+    clientHost = cliOptions.clientHost;
+  }
+
+  const originalWebServerPort = webServerPort;
+  webServerPort = Number(webServerPort);
+  if (!Number.isSafeInteger(webServerPort) || webServerPort <= 0 || webServerPort > 65535) {
+    console.error('Invalid web server port', originalWebServerPort);
+    process.exit(1);
+  }
+  void start(cliOptions.open);
 }
