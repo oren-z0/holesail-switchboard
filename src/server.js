@@ -10,7 +10,7 @@ const dataFile = process.env.HSSB_DATA_FILE && (
     ? process.env.HSSB_DATA_FILE
     : path.join(__dirname, '..', process.env.HSSB_DATA_FILE)
 );
-const defaultClientHost = process.env.HSSB_CLIENT_HOST;
+const clientHost = process.env.HSSB_CLIENT_HOST;
 const subtitle = process.env.HSSB_SUBTITLE;
 
 const holesailServers = [];
@@ -123,16 +123,19 @@ async function startClient(index) {
   if (!holesailClient) {
     return;
   }
+  holesailClient.state = 'initializing';
   if (!holesailClient.enabled) {
+    holesailClient.state = 'disabled';
     return;
   }
-  holesailClient.state = 'initializing';
   try {
     const hs = new Holesail({
+      client: true,
       key: holesailClient.key,
       port: holesailClient.port,
-      ...(defaultClientHost ? { host: defaultClientHost } : {}),
+      ...(clientHost ? { host: clientHost } : {}),
     });
+    await hs.ready();
     holesailClient.hs = hs;
     holesailClient.state = 'running';
     fastify.log.info(`Client ${index} started: connecting to ${
@@ -184,6 +187,7 @@ fastify.get('/api/settings', async (_request, _reply) => {
       hs: undefined,
     })),
     ...subtitle ? { subtitle } : {},
+    ...clientHost ? { clientHost } : {},
   };
 });
 
@@ -314,7 +318,7 @@ fastify.post('/api/clients', async (request, reply) => mutationLimit(async () =>
     }
     if (enabled) {
       if (key === '') {
-        return reply.code(400).send({ error: 'Key is required when client is enabled' });
+        return reply.code(400).send({ error: 'HS URL is required when client is enabled' });
       }
       if (port === 0) {
         return reply.code(400).send({ error: 'Port is required when client is enabled' });
@@ -357,7 +361,7 @@ fastify.patch('/api/clients/:index', async (request, reply) => mutationLimit(asy
     }
     if (enabled) {
       if (key === '') {
-        return reply.code(400).send({ error: 'Key is required when client is enabled' });
+        return reply.code(400).send({ error: 'HS URL is required when client is enabled' });
       }
       if (port === 0) {
         return reply.code(400).send({ error: 'Port is required when client is enabled' });

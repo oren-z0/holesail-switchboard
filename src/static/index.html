@@ -22,7 +22,7 @@
         <template x-for="(part, partIndex) in subtitleParts" :key="partIndex">
           <span>
             <template x-if="part.startsWith('https://')">
-              <a class="text-blue-600 hover:text-blue-800 underline break-all" :href="part" target="_blank" rel="noopener noreferrer" x-text="part"></a>
+              <a class="text-blue-600 hover:text-blue-800 underline" :href="part" target="_blank" rel="noopener noreferrer" x-text="part"></a>
             </template>
             <template x-if="!part.startsWith('https://')">
               <span x-text="part"></span>
@@ -167,7 +167,7 @@
             <ul class="divide-y divide-gray-200">
               <template x-for="(client, index) in clients" :key="index">
                 <li class="p-4 hover:bg-gray-50">
-                  <div class="flex items-center justify-between">
+                  <div class="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex items-center space-x-3">
                       <!-- Status Indicator -->
                       <span class="relative flex h-3 w-3">
@@ -186,22 +186,14 @@
                       </span>
                       <div>
                         <p class="font-medium text-gray-900"
-                          x-text="client.host + ':' + client.port"></p>
+                          x-text="(clientHost ? (clientHost + ':') : 'Port: ') + client.port"></p>
                         <p class="text-sm text-gray-500">
-                          <span class="text-gray-400"
-                            x-text="'Key: ' + client.key.substring(0, 16) + '...'"></span>
+                          <span class="text-gray-400 break-all"
+                            x-text="(client.key.startsWith('hs://s') ? (client.key.substring(0, 8) + '...') : client.key)"></span>
                         </p>
                       </div>
                     </div>
-                    <div class="flex items-center space-x-2">
-                      <button @click="copyToClipboard(client.host + ':' + client.port, 'Local address')"
-                        class="p-2 text-gray-500 hover:text-gray-700" title="Copy address">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                          stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                          <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
-                        </svg>
-                      </button>
+                    <div class="flex w-full items-center justify-end space-x-2 sm:w-auto">
                       <button @click="openClientModal(index)"
                         class="p-2 text-gray-500 hover:text-gray-700" title="Edit">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -260,7 +252,7 @@
               placeholder="8080">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Key (64 hex characters)</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Key (minimum 64 characters)</label>
             <div class="flex gap-2">
               <div class="relative flex-1">
                 <input :type="serverModal.showKey ? 'text' : 'password'" x-model="serverModal.key"
@@ -339,31 +331,50 @@
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Key (connection URL)</label>
-            <input type="text" x-model="clientModal.key"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-              placeholder="z32 encoded key from server">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Local Port</label>
-            <input type="number" x-model.number="clientModal.port"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="9000">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Local Host (optional)</label>
-            <input type="text" x-model="clientModal.host"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="127.0.0.1">
-          </div>
-          <div>
             <label class="flex items-center">
               <input type="checkbox" x-model="clientModal.enabled"
                 class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
               <span class="ml-2 text-sm text-gray-700">Enabled</span>
             </label>
           </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Connection URL</label>
+            <div class="relative" x-effect="onClientKeyChange(clientModal.key)">
+              <input :type="(clientModal.showKey === false) ? 'password' : 'text'" x-model="clientModal.key" :disabled="!clientModal.enabled"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm disabled:bg-gray-100 disabled:text-gray-500 disabled:border-gray-200 disabled:cursor-not-allowed disabled:opacity-75"
+                :class="{ 'pr-10': clientModal.showKey !== null }"
+                placeholder="hs://...">
+              <button type="button" @click.prevent="clientModal.showKey = !clientModal.showKey" :disabled="!clientModal.enabled" x-show="clientModal.showKey !== null"
+                class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 rounded hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:hover:bg-transparent"
+                :aria-label="clientModal.showKey ? 'Hide URL' : 'Show URL'"
+                :title="clientModal.showKey ? 'Hide URL' : 'Show URL'">
+                <svg x-show="!clientModal.showKey" xmlns="http://www.w3.org/2000/svg" fill="none"
+                  viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="size-5"
+                  aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <svg x-show="clientModal.showKey" xmlns="http://www.w3.org/2000/svg" fill="none"
+                  viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="size-5"
+                  aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M3 3l18 18M10.477 10.48a3 3 0 104.243 4.243" />
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M7.11 7.113C5.37 8.273 3.991 9.922 3 12c1.274 4.057 5.064 7 9.542 7 1.41 0 2.763-.291 4.007-.818M9.88 5.08A9.96 9.96 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.98 9.98 0 01-4.293 5.037" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Local Port</label>
+            <input type="number" x-model.number="clientModal.port" :disabled="!clientModal.enabled"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:border-gray-200 disabled:cursor-not-allowed disabled:opacity-75"
+              placeholder="9000">
+          </div>
         </div>
+
+        <p x-show="clientModal.savingError" class="mt-2 text-sm text-red-500" x-text="clientModal.savingError"></p>
 
         <div class="mt-6 flex justify-end space-x-3">
           <button @click="closeClientModal()"
@@ -486,8 +497,8 @@
         loadingState: 'loading',
         servers: [],
         clients: [],
-        subtitle: '',
         subtitleParts: [],
+
         lastLoadSettings: 0,
         notifications: [],
         qrCode: null,
@@ -508,6 +519,7 @@
           open: false,
           editIndex: null,
           key: '',
+          showKey: null,
           port: 9000,
           host: '',
           enabled: true,
@@ -580,6 +592,9 @@
               this.subtitle = data.subtitle;
               this.subtitleParts = (data.subtitle || '').split(/\s/);
             }
+            if (data.clientHost !== this.clientHost) {
+              this.clientHost = data.clientHost;
+            }
             this.loadingState = 'loaded';
           } catch (err) {
             console.error('loadSettings error', err);
@@ -628,26 +643,26 @@
         },
 
         async saveServer() {
-          if (this.serverModal.savingError) {
-            this.serverModal.savingError = null;
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-          if (this.serverModal.enabled) {
-            if (!this.serverModal.host) {
-              this.serverModal.savingError = 'Host is required';
-              return;
-            }
-            if (!this.serverModal.port) {
-              this.serverModal.savingError = 'Port is required';
-              return;
-            }
-            if (!this.serverModal.key) {
-              this.serverModal.savingError = 'Key is required';
-              return;
-            }
-          }
           this.serverModal.saving = true;
           try {
+            if (this.serverModal.savingError) {
+              this.serverModal.savingError = null;
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            if (this.serverModal.enabled) {
+              if (!this.serverModal.host) {
+                this.serverModal.savingError = 'Host is required';
+                return;
+              }
+              if (!this.serverModal.port) {
+                this.serverModal.savingError = 'Port is required';
+                return;
+              }
+              if (!this.serverModal.key) {
+                this.serverModal.savingError = 'Key is required';
+                return;
+              }
+            }
             const body = {
               enabled: this.serverModal.enabled,
               host: this.serverModal.host,
@@ -724,8 +739,8 @@
               open: true,
               editIndex: index,
               key: client.key,
+              showKey: client.key.startsWith('hs://s') ? false : null,
               port: client.port,
-              host: client.host || '',
               enabled: client.enabled,
               saving: false
             };
@@ -734,12 +749,19 @@
               open: true,
               editIndex: null,
               key: '',
+              showKey: null,
               port: 9000,
-              host: '',
               enabled: true,
               saving: false
             };
           }
+        },
+
+        onClientKeyChange(key) {
+          if (this.clientModal.showKey !== null || !key.startsWith('hs://s')) {
+            return;
+          }
+          this.clientModal.showKey = false;
         },
 
         closeClientModal() {
@@ -749,14 +771,29 @@
         async saveClient() {
           this.clientModal.saving = true;
           try {
+            if (this.clientModal.savingError) {
+              this.clientModal.savingError = null;
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            if (this.clientModal.enabled) {
+              if (!this.clientModal.key) {
+                this.clientModal.savingError = 'HS URL is required';
+                return;
+              }
+              if (!this.clientModal.port) {
+                this.clientModal.savingError = 'Port is required';
+                return;
+              }
+            }
+            if (this.clientModal.key && !this.clientModal.key.startsWith('hs://')) {
+              this.clientModal.savingError = 'URL must start with "hs://"';
+              return;
+            }
             const body = {
               key: this.clientModal.key,
               port: this.clientModal.port,
               enabled: this.clientModal.enabled
             };
-            if (this.clientModal.host) {
-              body.host = this.clientModal.host;
-            }
 
             const isEdit = this.clientModal.editIndex !== null;
             const url = isEdit
