@@ -283,7 +283,6 @@ fastify.post('/api/auth/login', async (request, reply) => {
       token: access.token,
       expiresAt: access.expiresAt,
       refreshToken: session.refreshToken,
-      refreshExpiresAt: session.refreshExpiresAt,
     };
   } catch (err) {
     fastify.log.error('POST /api/auth/login failed', err);
@@ -311,19 +310,18 @@ fastify.post('/api/auth/logout', async (request, reply) => {
 fastify.post('/api/auth/refresh', async (request, reply) => {
   try {
     const { refreshToken } = request.body || {};
-    const result = auth.refreshSession(refreshToken);
-    if (!result) {
+    const session = auth.refreshSession(refreshToken);
+    if (!session) {
       return reply.code(401).send({ error: 'Invalid session' });
     }
 
-    const access = signAccessToken(result.sessionId);
+    const access = signAccessToken(session.sessionId);
     reply.header('Cache-Control', 'no-store');
     return {
       success: true,
       token: access.token,
       expiresAt: access.expiresAt,
-      refreshToken: result.refreshToken,
-      refreshExpiresAt: result.refreshExpiresAt,
+      refreshToken: session.refreshToken,
     };
   } catch (err) {
     fastify.log.error('POST /api/auth/refresh failed', err);
