@@ -5,8 +5,12 @@ const path = require('path');
 const os = require('os');
 const fastify = require('fastify')({ logger: true });
 const fs = require('fs/promises');
+const nodeCrypto = require('crypto');
 const Holesail = require('holesail');
 const { default: pLimit } = require('p-limit');
+const auth = require('./auth');
+
+const accessTokenExpirySeconds = 10 * 60; // 10 minutes
 
 // Determine default data directory based on OS
 function getDefaultDataDir() {
@@ -40,6 +44,7 @@ let webServerPort = process.env.HSSB_PORT || 3000; // will be converted to a num
 
 const holesailServers = [];
 const holesailClients = [];
+let passwordHash = null; // "salt:derivedKey" when set
 
 
 // Validation helpers
@@ -67,6 +72,7 @@ async function saveData() {
   await fs.writeFile(dataFile, JSON.stringify({
     servers: holesailServers.map((server) => ({ ...server, hs: undefined, state: undefined })),
     clients: holesailClients.map((client) => ({ ...client, hs: undefined, state: undefined })),
+    passwordHash
   }, null, 2));
 }
 
@@ -81,6 +87,9 @@ async function ensureDataFile(fixedClientPorts) {
       const data = JSON.parse(fileContent);
       if (Array.isArray(data.servers)) {
         holesailServers.push(...data.servers);
+      }
+      if (data.passwordHash && typeof data.passwordHash === 'string') {
+        passwordHash = data.passwordHash;
       }
       if (Array.isArray(data.clients)) {
         holesailClients.push(...data.clients.filter(
@@ -202,6 +211,49 @@ async function stopClient(index) {
 
 const mutationLimit = pLimit(1);
 
+function getBearerTokenFromRequest(request) {
+  const authHeader = request.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  return authHeader.slice(7);
+}
+
+function signAccessToken(sessionId) {
+  const now = Math.floor(Date.now() / 1000);
+  const expiresAt = now + accessTokenExpirySeconds;
+  const token = fastify.jwt.sign(
+    { sid: sessionId },
+    { expiresIn: accessTokenExpirySeconds, jwtid: nodeCrypto.randomUUID() }
+  );
+  return { token, expiresAt };
+}
+
+async function requireAuth(request, reply) {
+  if (!passwordHash) return; // No auth needed if no password set
+
+  const token = getBearerTokenFromRequest(request);
+  if (!token) {
+    return reply.code(401).send({ error: 'Authentication required' });
+  }
+
+  try {
+    const payload = await fastify.jwt.verify(token);
+    if (!payload || typeof payload !== 'object' || typeof payload.sid !== 'string') {
+      return reply.code(401).send({ error: 'Invalid or expired token' });
+    }
+    if (!auth.isSessionActive(payload.sid)) {
+      return reply.code(401).send({ error: 'Invalid or expired token' });
+    }
+    request.auth = { sessionId: payload.sid };
+  } catch {
+    return reply.code(401).send({ error: 'Invalid or expired token' });
+  }
+}
+
+// Register JWT support (used for access tokens)
+fastify.register(require('@fastify/jwt'), {
+  secret: process.env.HSSB_JWT_SECRET || nodeCrypto.randomBytes(32).toString('hex'),
+});
+
 // Register static file serving
 fastify.register(require('@fastify/static'), {
   root: path.join(__dirname, 'static'),
@@ -214,8 +266,137 @@ fastify.get('/', (_request, reply) => {
 
 // API Routes
 
+// POST /api/auth/login - Login with password
+fastify.post('/api/auth/login', async (request, reply) => {
+  try {
+    if (!passwordHash) {
+      return reply.code(400).send({ error: 'No password set' });
+    }
+
+    const { password } = request.body || {};
+    if (!password || typeof password !== 'string') {
+      return reply.code(400).send({ error: 'Password is required' });
+    }
+
+    const isValid = await auth.verifyPassword(password, passwordHash);
+    if (!isValid) {
+      return reply.code(401).send({ error: 'Invalid password' });
+    }
+
+    const session = auth.createSession();
+    if (!session) {
+      return reply.code(429).send({ error: 'Maximum sessions reached. Please logout from another device.' });
+    }
+    const access = signAccessToken(session.sessionId);
+
+    reply.header('Cache-Control', 'no-store');
+    return {
+      success: true,
+      token: access.token,
+      expiresAt: access.expiresAt,
+      refreshToken: session.refreshToken,
+      refreshExpiresAt: session.refreshExpiresAt,
+    };
+  } catch (err) {
+    fastify.log.error('POST /api/auth/login failed', err);
+    return reply.code(500).send({ error: 'Login failed' });
+  }
+});
+
+// POST /api/auth/logout - Logout (invalidate session)
+fastify.post('/api/auth/logout', async (request, reply) => {
+  try {
+    const { refreshToken } = request.body || {};
+    if (refreshToken && typeof refreshToken === 'string') {
+      auth.invalidateSessionByRefreshToken(refreshToken);
+    }
+
+    reply.header('Cache-Control', 'no-store');
+    return { success: true };
+  } catch (err) {
+    fastify.log.error('POST /api/auth/logout failed', err);
+    return reply.code(500).send({ error: 'Logout failed' });
+  }
+});
+
+// POST /api/auth/refresh - Refresh token
+fastify.post('/api/auth/refresh', async (request, reply) => {
+  try {
+    const { refreshToken } = request.body || {};
+    const result = auth.refreshSession(refreshToken);
+    if (!result) {
+      return reply.code(401).send({ error: 'Invalid session' });
+    }
+
+    const access = signAccessToken(result.sessionId);
+    reply.header('Cache-Control', 'no-store');
+    return {
+      success: true,
+      token: access.token,
+      expiresAt: access.expiresAt,
+      refreshToken: result.refreshToken,
+      refreshExpiresAt: result.refreshExpiresAt,
+    };
+  } catch (err) {
+    fastify.log.error('POST /api/auth/refresh failed', err);
+    return reply.code(500).send({ error: 'Token refresh failed' });
+  }
+});
+
+// POST /api/auth/set-password - Set or change password
+fastify.post(
+  '/api/auth/set-password',
+  { preHandler: requireAuth },
+  async (request, reply) => mutationLimit(async () => {
+  try {
+    const { currentPassword, newPassword } = request.body || {};
+
+    // Validate new password
+    if (typeof newPassword !== 'string') {
+      return reply.code(400).send({ error: 'New password is required' });
+    }
+
+    // If password already exists, require authentication
+    if (passwordHash) {
+      // Verify current password
+      if (!currentPassword || typeof currentPassword !== 'string') {
+        return reply.code(400).send({ error: 'Current password is required' });
+      }
+
+      const isValid = await auth.verifyPassword(currentPassword, passwordHash);
+      if (!isValid) {
+        return reply.code(400).send({ error: 'Current password is incorrect' });
+      }
+
+      // Invalidate all other sessions on password change
+      auth.invalidateAllSessions(request.auth.sessionId);
+    }
+
+    // Hash and store new password
+    if (newPassword) {
+      passwordHash = await auth.hashPassword(newPassword);
+    } else {
+      passwordHash = null;
+    }
+    await saveData();
+
+    return {
+      success: true,
+    };
+  } catch (err) {
+    fastify.log.error(`POST /api/auth/set-password failed: ${err}`);
+    return reply.code(500).send({ error: 'Failed to set password' });
+  }
+}));
+
+fastify.get('/api/auth/required', async (_request, _reply) => {
+  return {
+    authRequired: Boolean(passwordHash),
+  };
+});
+
 // GET /api/settings - Return all servers/clients with state
-fastify.get('/api/settings', async (_request, _reply) => {
+fastify.get('/api/settings', { preHandler: requireAuth }, async (_request, _reply) => {
   return {
     servers: holesailServers.map((server) => ({
       ...server,
@@ -229,11 +410,12 @@ fastify.get('/api/settings', async (_request, _reply) => {
     ...subtitle ? { subtitle } : {},
     ...clientHost ? { clientHost } : {},
     fixedClientPorts: Boolean(fixedClientPortsString),
+    authRequired: Boolean(passwordHash),
   };
 });
 
 // POST /api/servers - Create new server
-fastify.post('/api/servers', async (request, reply) => mutationLimit(async () => {
+fastify.post('/api/servers', { preHandler: requireAuth }, async (request, reply) => mutationLimit(async () => {
   try {
     const { host, port, key, secure, enabled } = request.body || {};
 
@@ -276,7 +458,7 @@ fastify.post('/api/servers', async (request, reply) => mutationLimit(async () =>
 }));
 
 // PATCH /api/servers/:index - Update server
-fastify.patch('/api/servers/:index', async (request, reply) => mutationLimit(async () => {
+fastify.patch('/api/servers/:index', { preHandler: requireAuth }, async (request, reply) => mutationLimit(async () => {
   try {
     const index = parseInt(request.params.index, 10);
     if (typeof index !== 'number' || Number.isNaN(index) || index < 0 || index >= holesailServers.length) {
@@ -323,7 +505,7 @@ fastify.patch('/api/servers/:index', async (request, reply) => mutationLimit(asy
 }));
 
 // DELETE /api/servers/:index - Delete server
-fastify.delete('/api/servers/:index', async (request, reply) => mutationLimit(async () => {
+fastify.delete('/api/servers/:index', { preHandler: requireAuth }, async (request, reply) => mutationLimit(async () => {
   try {
     const index = parseInt(request.params.index, 10);
     if (typeof index !== 'number' || Number.isNaN(index) || index < 0 || index >= holesailServers.length) {
@@ -344,7 +526,7 @@ fastify.delete('/api/servers/:index', async (request, reply) => mutationLimit(as
 }));
 
 // POST /api/clients - Create new client
-fastify.post('/api/clients', async (request, reply) => mutationLimit(async () => {
+fastify.post('/api/clients', { preHandler: requireAuth }, async (request, reply) => mutationLimit(async () => {
   try {
     if (fixedClientPortsString) {
       return reply.code(403).send({ error: 'Unauthorized to create clients' });
@@ -385,7 +567,7 @@ fastify.post('/api/clients', async (request, reply) => mutationLimit(async () =>
 }));
 
 // PATCH /api/clients/:index - Update client
-fastify.patch('/api/clients/:index', async (request, reply) => mutationLimit(async () => {
+fastify.patch('/api/clients/:index', { preHandler: requireAuth }, async (request, reply) => mutationLimit(async () => {
   try {
     const index = parseInt(request.params.index, 10);
     if (typeof index !== 'number' || Number.isNaN(index) || index < 0 || index >= holesailClients.length) {
@@ -427,7 +609,7 @@ fastify.patch('/api/clients/:index', async (request, reply) => mutationLimit(asy
 }));
 
 // DELETE /api/clients/:index - Delete client
-fastify.delete('/api/clients/:index', async (request, reply) => mutationLimit(async () => {
+fastify.delete('/api/clients/:index', { preHandler: requireAuth }, async (request, reply) => mutationLimit(async () => {
   try {
     if (fixedClientPortsString) {
       return reply.code(403).send({ error: 'Unauthorized to delete clients' });
@@ -450,6 +632,9 @@ fastify.delete('/api/clients/:index', async (request, reply) => mutationLimit(as
 // Start the server
 async function start(openBrowser = false) {
   try {
+    // Initialize authentication
+    auth.initAuth();
+
     let fixedClientPorts = null;
     if (fixedClientPortsString) {
       fixedClientPorts = new Set();

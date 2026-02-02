@@ -20,11 +20,38 @@
 <body x-data="appData()">
   <div class="min-h-screen bg-gray-100">
     <div class="container mx-auto py-8 px-4 max-w-4xl" x-cloak>
+      <!-- Auth Controls -->
+      <div class="flex justify-center sm:justify-end items-center gap-3 mb-4"
+        x-show="loadingState === 'loaded' && isAuthenticated">
+        <button @click="showPasswordModal()"
+          class="px-3 py-1.5 text-sm text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 flex items-center gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+            stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+          </svg>
+          <span x-text="authRequired ? 'Change Login Password' : 'Set Login Password'"></span>
+        </button>
+
+        <template x-if="authRequired">
+          <button @click="logout()"
+            class="px-3 py-1.5 text-sm text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 flex items-center gap-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+              stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15m-3 0-3-3m0 0 3-3m-3 3H15" />
+            </svg>
+            Logout
+          </button>
+        </template>
+      </div>
+
       <div class="flex justify-center mb-6">
         <img src="/images/logo-large.png" alt="Holesail Switchboard" class="w-40 h-40">
       </div>
-      <h1 class="text-3xl font-bold text-center text-gray-700 mb-8">Holesail Switchboard</h1>
-      <p class="text-center text-gray-500 mb-8" x-show="subtitleParts.length > 0">
+      <h1 class="text-3xl font-bold text-center text-gray-700 mb-4">Holesail Switchboard</h1>
+
+      <p class="text-center text-gray-500 mb-8" x-show="subtitleParts.length > 0 && isAuthenticated">
         <template x-for="(part, partIndex) in subtitleParts" :key="partIndex">
           <span>
             <template x-if="part.startsWith('https://')">
@@ -38,7 +65,7 @@
       </p>
 
       <!-- Loading State -->
-      <div class="flex justify-center py-12" x-show="loadingState === 'loading'">
+      <div class="flex justify-center py-12" x-show="loadingState === 'loading' && isAuthenticated">
         <svg class="animate-spin h-8 w-8 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none"
           viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -49,14 +76,14 @@
       </div>
 
       <!-- Error State -->
-      <div x-show="loadingState === 'error'" class="text-center py-12">
+      <div x-show="loadingState === 'error' && isAuthenticated" class="text-center py-12">
         <p class="text-red-500 font-medium">
           Server did not respond. Try restarting the server and refreshing the page.
         </p>
       </div>
 
       <!-- Main Content -->
-      <div x-show="loadingState === 'loaded'">
+      <div x-show="loadingState === 'loaded' && isAuthenticated">
         <!-- Servers Section -->
         <section class="mb-8">
           <div class="flex justify-between items-center mb-4">
@@ -234,7 +261,7 @@
   </div>
 
   <!-- Server Modal -->
-  <div x-show="serverModal.open" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+  <div x-show="serverModal.open && isAuthenticated" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
     <div class="flex items-center justify-center min-h-screen px-4">
       <div class="fixed inset-0 bg-black opacity-50" @click="closeServerModal()"></div>
       <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
@@ -332,7 +359,7 @@
   </div>
 
   <!-- Client Modal -->
-  <div x-show="clientModal.open" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+  <div x-show="clientModal.open && isAuthenticated" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
     <div class="flex items-center justify-center min-h-screen px-4">
       <div class="fixed inset-0 bg-black opacity-50" @click="closeClientModal()"></div>
       <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
@@ -403,7 +430,7 @@
   </div>
 
   <!-- QR Code Modal -->
-  <div x-show="qrModal.open" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+  <div x-show="qrModal.open && isAuthenticated" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
     <div class="flex items-center justify-center min-h-screen px-4">
       <div class="fixed inset-0 bg-black opacity-50" @click="closeQrModal()"></div>
       <div class="relative bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
@@ -417,6 +444,150 @@
           <button @click="closeQrModal()"
             class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
             Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Password Modal -->
+  <div x-show="passwordModal.open && isAuthenticated" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+    <div class="flex items-center justify-center min-h-screen px-4">
+      <div class="fixed inset-0 bg-black opacity-50" @click="closePasswordModal()"></div>
+      <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4" x-text="authRequired ? 'Change Login Password' : 'Set Login Password'">
+        </h3>
+
+        <div class="space-y-4">
+          <template x-if="authRequired">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+              <div class="relative">
+                <input :type="passwordModal.showCurrentPassword ? 'text' : 'password'" x-model="passwordModal.currentPassword"
+                  class="w-full px-3 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter current password">
+                <button type="button" @click.prevent="passwordModal.showCurrentPassword = !passwordModal.showCurrentPassword"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 rounded hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  :aria-label="passwordModal.showCurrentPassword ? 'Hide password' : 'Show password'"
+                  :title="passwordModal.showCurrentPassword ? 'Hide password' : 'Show password'">
+                  <svg x-show="!passwordModal.showCurrentPassword" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="size-5" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 0 1 6 0z" />
+                  </svg>
+                  <svg x-show="passwordModal.showCurrentPassword" xmlns="http://www.w3.org/2000/svg" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="size-5" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M10.477 10.48a3 3 0 104.243 4.243" />
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M7.11 7.113C5.37 8.273 3.991 9.922 3 12c1.274 4.057 5.064 7 9.542 7 1.41 0 2.763-.291 4.007-.818M9.88 5.08A9.96 9.96 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.98 9.98 0 01-4.293 5.037" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </template>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">New Password (Leave blank to clear)</label>
+            <div class="relative">
+              <input :type="passwordModal.showNewPassword ? 'text' : 'password'" x-model="passwordModal.newPassword"
+                class="w-full px-3 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter new password">
+              <button type="button" @click.prevent="passwordModal.showNewPassword = !passwordModal.showNewPassword"
+                class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 rounded hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                :aria-label="passwordModal.showNewPassword ? 'Hide password' : 'Show password'"
+                :title="passwordModal.showNewPassword ? 'Hide password' : 'Show password'">
+                <svg x-show="!passwordModal.showNewPassword" xmlns="http://www.w3.org/2000/svg" fill="none"
+                  viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="size-5" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 0 1 6 0z" />
+                </svg>
+                <svg x-show="passwordModal.showNewPassword" xmlns="http://www.w3.org/2000/svg" fill="none"
+                  viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="size-5" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M10.477 10.48a3 3 0 104.243 4.243" />
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M7.11 7.113C5.37 8.273 3.991 9.922 3 12c1.274 4.057 5.064 7 9.542 7 1.41 0 2.763-.291 4.007-.818M9.88 5.08A9.96 9.96 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.98 9.98 0 01-4.293 5.037" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+            <input type="password" x-model="passwordModal.confirmPassword"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Re-enter new password">
+          </div>
+
+          <p x-show="passwordModal.error" class="text-sm text-red-500" x-text="passwordModal.error"></p>
+        </div>
+
+        <div class="mt-6 flex justify-end space-x-3">
+          <button @click="closePasswordModal()"
+            class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
+            :disabled="passwordModal.loading">
+            Cancel
+          </button>
+          <button @click="setPassword()" :disabled="passwordModal.loading"
+            class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
+            <span x-show="!passwordModal.loading" x-text="authRequired ? 'Change' : 'Set'"></span>
+            <span x-show="passwordModal.loading">Saving...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login Modal -->
+  <div x-show="!isAuthenticated" class="fixed inset-0 z-50 overflow-y-auto" x-cloak>
+    <div class="flex items-center justify-center min-h-screen px-4">
+      <div class="fixed inset-0 bg-black opacity-50"></div>
+      <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Login</h3>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <div class="relative">
+              <input :type="loginModal.showPassword ? 'text' : 'password'" x-model="loginModal.password"
+                @keydown.enter.prevent="login()"
+                class="w-full px-3 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your password">
+              <button type="button" @click.prevent="loginModal.showPassword = !loginModal.showPassword"
+                class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 rounded hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                :aria-label="loginModal.showPassword ? 'Hide password' : 'Show password'"
+                :title="loginModal.showPassword ? 'Hide password' : 'Show password'">
+                <svg x-show="!loginModal.showPassword" xmlns="http://www.w3.org/2000/svg" fill="none"
+                  viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="size-5" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <svg x-show="loginModal.showPassword" xmlns="http://www.w3.org/2000/svg" fill="none"
+                  viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="size-5" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18" />
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M10.477 10.48a3 3 0 104.243 4.243" />
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M7.11 7.113C5.37 8.273 3.991 9.922 3 12c1.274 4.057 5.064 7 9.542 7 1.41 0 2.763-.291 4.007-.818M9.88 5.08A9.96 9.96 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.98 9.98 0 01-4.293 5.037" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <p x-show="loginModal.error" class="text-sm text-red-500" x-text="loginModal.error"></p>
+        </div>
+
+        <div class="mt-6 flex justify-end">
+          <button @click="login()" :disabled="loginModal.loading"
+            class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
+            <span x-show="!loginModal.loading">Login</span>
+            <span x-show="loginModal.loading">Logging in...</span>
           </button>
         </div>
       </div>
@@ -510,7 +681,34 @@
         subtitleParts: [],
         fixedClientPorts: false,
 
+        // Auth state
+        authRequired: false,
+        authToken: localStorage.getItem('authToken') || null,
+        authExpiresAt: parseInt(localStorage.getItem('authExpiresAt') || '0', 10) || 9,
+        refreshToken: localStorage.getItem('refreshToken') || null,
+        refreshExpiresAt: parseInt(localStorage.getItem('refreshExpiresAt') || '0', 10) || 0,
+        isAuthenticated: true,
+
+        loginModal: {
+          password: '',
+          showPassword: false,
+          error: null,
+          loading: false
+        },
+
+        passwordModal: {
+          open: false,
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+          showCurrentPassword: false,
+          showNewPassword: false,
+          error: null,
+          loading: false
+        },
+
         lastLoadSettings: 0,
+        isLoadingSettings: false,
         notifications: [],
         qrCode: null,
 
@@ -547,6 +745,243 @@
             crypto.getRandomValues(new Uint8Array(32)),
             b => b.toString(16).padStart(2, '0'),
           ).join('')}`;
+        },
+
+        // Auth helper methods
+        saveAuthState() {
+          if (this.authToken) {
+            localStorage.setItem('authToken', this.authToken);
+            localStorage.setItem('authExpiresAt', String(this.authExpiresAt));
+            if (this.refreshToken) {
+              localStorage.setItem('refreshToken', this.refreshToken);
+            }
+            localStorage.setItem('refreshExpiresAt', String(this.refreshExpiresAt || 0));
+          } else {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('authExpiresAt');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('refreshExpiresAt');
+          }
+        },
+
+        clearAuthState() {
+          this.authToken = null;
+          this.authExpiresAt = 0;
+          this.refreshToken = null;
+          this.refreshExpiresAt = 0;
+          if (this.isAuthenticated) {
+            // was authenticated, reset modal state.
+            this.loginModal = {
+              password: '',
+              showPassword: false,
+              error: null,
+              loading: false
+            };
+          }
+          this.isAuthenticated = false;
+          this.saveAuthState();
+        },
+
+        async authFetch(url, options = {}, retried = false) {
+          // Add auth header if we have a token
+          if (this.authToken) {
+            options.headers = {
+              ...options.headers,
+              'Authorization': `Bearer ${this.authToken}`
+            };
+          }
+
+          const response = await fetch(url, options);
+
+          // Handle auth errors
+          if (response.status === 401) {
+            if (this.refreshToken && !retried) {
+              // Try to refresh and retry once (common pattern for expired access tokens)
+              const refreshed = await this.maybeRefreshToken(true);
+              if (refreshed) {
+                return await this.authFetch(url, options, true);
+              }
+            }
+
+            // Clear invalid auth state + show login modal
+            this.clearAuthState();
+          }
+
+          return response;
+        },
+
+        async maybeRefreshToken(force = false) {
+          if (!this.refreshToken) return false;
+
+          if (!force) {
+            if (!this.authToken) return false;
+
+            // Refresh if less than 5 minutes remaining
+            const now = Math.floor(Date.now() / 1000);
+            const remaining = this.authExpiresAt - now;
+
+            if (remaining < 0 || remaining > 300) return false;
+          }
+
+          try {
+            const response = await fetch('/api/auth/refresh', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refreshToken: this.refreshToken }),
+              signal: AbortSignal.timeout(7000)
+            });
+
+            if (!response.ok) {
+              this.clearAuthState();
+              return false;
+            }
+
+            const data = await response.json();
+            this.authToken = data.token;
+            this.authExpiresAt = data.expiresAt;
+            this.refreshToken = data.refreshToken;
+            this.refreshExpiresAt = data.refreshExpiresAt;
+            this.isAuthenticated = true;
+            this.saveAuthState();
+            return true;
+          } catch (err) {
+            console.error('Token refresh failed', err);
+            return false;
+          }
+        },
+
+        async login() {
+          this.loginModal.loading = true;
+          this.loginModal.error = null;
+
+          try {
+            const response = await fetch('/api/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ password: this.loginModal.password }),
+              signal: AbortSignal.timeout(15000)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+              this.loginModal.error = data.error || 'Login failed';
+              return;
+            }
+
+            this.authToken = data.token;
+            this.authExpiresAt = data.expiresAt;
+            this.refreshToken = data.refreshToken;
+            this.refreshExpiresAt = data.refreshExpiresAt;
+            this.isAuthenticated = true;
+            this.saveAuthState();
+
+            this.addNotification({
+              variant: 'success',
+              message: 'Logged in successfully.'
+            });
+
+            // Reload settings to get unmasked data
+            await this.loadSettings();
+          } catch (err) {
+            console.error('Login error', err);
+            this.loginModal.error = 'Login failed. Please try again.';
+          } finally {
+            this.loginModal.loading = false;
+          }
+        },
+
+        async logout() {
+          try {
+            await fetch('/api/auth/logout', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refreshToken: this.refreshToken }),
+              signal: AbortSignal.timeout(7000)
+            });
+          } catch (err) {
+            console.error('Logout error', err);
+          }
+
+          this.clearAuthState();
+          this.addNotification({
+            variant: 'success',
+            message: 'Logged out successfully.'
+          });
+
+          // Reload to show masked data
+          await this.loadSettings();
+        },
+
+        showPasswordModal() {
+          this.passwordModal = {
+            open: true,
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: '',
+            showCurrentPassword: false,
+            showNewPassword: false,
+            error: null,
+            loading: false
+          };
+        },
+
+        closePasswordModal() {
+          this.passwordModal.open = false;
+        },
+
+        async setPassword() {
+          this.passwordModal.loading = true;
+          this.passwordModal.error = null;
+
+          try {
+            const wasAuthRequired = this.authRequired;
+
+            if (this.passwordModal.newPassword !== this.passwordModal.confirmPassword) {
+              this.passwordModal.error = 'Passwords do not match';
+              return;
+            }
+
+            const body = {
+              newPassword: this.passwordModal.newPassword
+            };
+
+            // Include current password if changing existing password
+            if (this.authRequired) {
+              body.currentPassword = this.passwordModal.currentPassword;
+            }
+
+            const response = await this.authFetch('/api/auth/set-password', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+              signal: AbortSignal.timeout(15000)
+            });
+
+            if (!response.ok) {
+              try {
+                const errorData = await response.json();
+                this.passwordModal.error = `${errorData.error || 'Failed to set password'}`;
+              } catch (err) {
+                console.error('Failed to parse error response', err);
+                this.passwordModal.error = 'Failed to set password';
+              }
+              return;
+            }
+
+            this.closePasswordModal();
+            this.addNotification({
+              variant: 'success',
+              message: wasAuthRequired ? 'Password changed successfully.' : 'Password set successfully.'
+            });
+
+            await this.loadSettings();
+          } catch (err) {
+            console.error('Set password error', err);
+            this.passwordModal.error = 'Failed to set password. Please try again.';
+          } finally {
+            this.passwordModal.loading = false;
+          }
         },
 
         safeCompareArrays(a, b) {
@@ -587,12 +1022,70 @@
         },
 
         async loadSettings() {
+          if (this.isLoadingSettings) {
+            return;
+          }
+          this.isLoadingSettings = true;
           this.lastLoadSettings = Date.now();
+
           try {
-            const response = await fetch('/api/settings', {
+            if (this.isAuthenticated) {
+              await this.doLoadSettings();
+            } else {
+              await this.checkAuthRequired();
+            }
+          } finally {
+            this.isLoadingSettings = false;
+          }
+        },
+
+        async checkAuthRequired() {
+          try {
+            const response = await this.authFetch('/api/auth/required', {
               signal: AbortSignal.timeout(7000),
             });
+            if (!response.ok) {
+              throw new Error('Failed to check auth required');
+            }
             const data = await response.json();
+            if (data.authRequired !== this.authRequired) {
+              this.authRequired = data.authRequired;
+            }
+            if (!data.authRequired && !this.isAuthenticated) {
+              this.isAuthenticated = true;
+              await this.doLoadSettings();
+            }
+          } catch (error) {
+            console.error('checkAuthRequired error', error);
+          }
+        },
+
+        async doLoadSettings() {
+          // Try to refresh token if needed
+          await this.maybeRefreshToken();
+
+          try {
+            const fetchOptions = {
+              signal: AbortSignal.timeout(7000),
+            };
+
+            const response = await this.authFetch('/api/settings', fetchOptions);
+            if (!response.ok) {
+              if (response.status === 401 || response.status === 403) {
+                // The login modal will be opened by authFetch.
+                return;
+              }
+              throw new Error('Failed to load settings');
+            }
+            const data = await response.json();
+
+            // Update auth state
+            if (data.authRequired !== this.authRequired) {
+              this.authRequired = data.authRequired;
+            }
+
+            this.isAuthenticated = true;
+
             if (!this.safeCompareArrays(this.servers, data.servers)) {
               this.servers = data.servers;
             }
@@ -691,12 +1184,16 @@
               : '/api/servers';
             const method = isEdit ? 'PATCH' : 'POST';
 
-            const response = await fetch(url, {
+            const response = await this.authFetch(url, {
               method,
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(body),
               signal: AbortSignal.timeout(15000)
             });
+
+            if (response.status === 401 || response.status === 403) {
+              throw new Error('Authentication required');
+            }
 
             const result = await response.json();
             if (!response.ok) {
@@ -725,10 +1222,13 @@
             return;
           }
           try {
-            const response = await fetch(`/api/servers/${index}`, {
+            const response = await this.authFetch(`/api/servers/${index}`, {
               method: 'DELETE',
               signal: AbortSignal.timeout(15000)
             });
+            if (response.status === 401 || response.status === 403) {
+              throw new Error('Authentication required');
+            }
             if (!response.ok) {
               throw new Error('Failed to delete server');
             }
@@ -741,7 +1241,7 @@
             console.error('deleteServer error', err);
             this.addNotification({
               variant: 'error',
-              message: 'Failed to delete server.',
+              message: err.message || 'Failed to delete server.',
             });
           }
         },
@@ -815,12 +1315,16 @@
               : '/api/clients';
             const method = isEdit ? 'PATCH' : 'POST';
 
-            const response = await fetch(url, {
+            const response = await this.authFetch(url, {
               method,
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(body),
               signal: AbortSignal.timeout(15000)
             });
+
+            if (response.status === 401 || response.status === 403) {
+              throw new Error('Authentication required');
+            }
 
             const result = await response.json();
             if (!response.ok) {
@@ -849,10 +1353,13 @@
             return;
           }
           try {
-            const response = await fetch(`/api/clients/${index}`, {
+            const response = await this.authFetch(`/api/clients/${index}`, {
               method: 'DELETE',
               signal: AbortSignal.timeout(15000)
             });
+            if (response.status === 401 || response.status === 403) {
+              throw new Error('Authentication required');
+            }
             if (!response.ok) {
               throw new Error('Failed to delete client');
             }
@@ -865,7 +1372,7 @@
             console.error('deleteClient error', err);
             this.addNotification({
               variant: 'error',
-              message: 'Failed to delete client.',
+              message: err.message || 'Failed to delete client.',
             });
           }
         },
