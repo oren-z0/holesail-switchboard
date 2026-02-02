@@ -14,10 +14,10 @@
     "LICENSE"
   ],
   "scripts": {
-    "start": "node dist/server.js",
+    "start": "node -r dotenv/config dist/server.js",
     "ensure-dist": "mkdir -p dist",
     "dev": "npm run clean && concurrently \"npm run watch:server\" \"npm run watch:css\" \"npm run watch:static\"",
-    "watch:server": "npm run ensure-dist && nodemon -w \"src/*.js\" -w \".env\" --exec \"npm run build:server && node dist/server.js\"",
+    "watch:server": "npm run ensure-dist && nodemon -w \"src/*.js\" -w \".env\" --exec \"npm run build:server && node -r dotenv/config dist/server.js\"",
     "watch:css": "npm run ensure-dist && npm run build:css -- --watch",
     "watch:static": "npm run ensure-dist && nodemon -w \"src/static/**/*\" -e \"*\" --exec \"npm run build:static\"",
     "build": "npm run build:server && npm run build:static && npm run build:css",
@@ -37,7 +37,6 @@
     "@fastify/jwt": "^9.1.0",
     "@fastify/static": "^8.3.0",
     "commander": "^14.0.3",
-    "dotenv": "^16.6.1",
     "fastify": "^5.7.2",
     "holesail": "^2.4.1",
     "jsonwebtoken": "^9.0.3",
@@ -49,6 +48,7 @@
     "@tailwindcss/cli": "^4.1.18",
     "alpinejs": "^3.15.6",
     "concurrently": "^9.2.1",
+    "dotenv": "^17.2.3",
     "eslint": "^9.39.2",
     "eslint-plugin-html": "^8.1.4",
     "eslint-plugin-promise": "^7.2.1",
