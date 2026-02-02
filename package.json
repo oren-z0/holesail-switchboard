@@ -5,7 +5,7 @@
   "description": "A web interface to manage multiple holesail servers and clients",
   "main": "dist/server.js",
   "bin": {
-    "holesail-switchboard": "./dist/server.js"
+    "holesail-switchboard": "dist/server.js"
   },
   "files": [
     "dist",
