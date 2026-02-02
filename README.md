@@ -1,5 +1,7 @@
 # Holesail Switchboard
 
+![Holesail Switchboard screenshot](./screenshot.png)
+
 A web interface to manage multiple [holesail](https://github.com/holesail/holesail) servers and clients for peer-to-peer connections.
 
 ## Features
