@@ -68,6 +68,7 @@ CLI flags take precedence over environment variables. Copy `.env.example` to `.e
 - `HSSB_DATA_FILE` - Path to JSON state file (defaults to OS-specific location if not set)
 - `HSSB_PORT` / `HSSB_HOST` - Web dashboard UI binding
 - `HSSB_CLIENT_HOST` - Host for holesail clients to bind to (defaults to 127.0.0.1)
+- `HSSB_CLIENT_LINK_DOMAIN` - Domain for client links in dashboard (blank=same as dashboard, `<nolink>`=disable)
 - `HSSB_SUBTITLE` - Optional subtitle for the UI
 - `HSSB_FIXED_CLIENT_PORTS` - Comma-separated list of fixed client ports
 

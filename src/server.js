@@ -36,6 +36,7 @@ function getDefaultDataFile() {
 
 let dataFile = getDefaultDataFile();
 let clientHost = process.env.HSSB_CLIENT_HOST || '127.0.0.1';
+const clientLinkDomain = process.env.HSSB_CLIENT_LINK_DOMAIN || '';
 const subtitle = process.env.HSSB_SUBTITLE;
 const fixedClientPortsString = process.env.HSSB_FIXED_CLIENT_PORTS;
 
@@ -394,7 +395,7 @@ fastify.get('/api/settings', { preHandler: requireAuth }, async (_request, _repl
       hs: undefined,
     })),
     ...subtitle ? { subtitle } : {},
-    ...clientHost ? { clientHost } : {},
+    ...clientLinkDomain ? { clientLinkDomain } : {},
     fixedClientPorts: Boolean(fixedClientPortsString),
     authRequired: Boolean(passwordHash),
   };

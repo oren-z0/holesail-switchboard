@@ -220,8 +220,18 @@
                         </span>
                       </span>
                       <div>
-                        <p class="font-medium text-gray-900"
-                          x-text="(clientHost ? (clientHost + ':') : 'Port: ') + client.port"></p>
+                        <template x-if="evaluatedClientLinkDomain">
+                          <a
+                            class="font-medium text-blue-600 hover:text-blue-800 underline"
+                            :href="'http://' + evaluatedClientLinkDomain + ':' + client.port"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            x-text="evaluatedClientLinkDomain + ':' + client.port"
+                          ></a>
+                        </template>
+                        <template x-if="!evaluatedClientLinkDomain">
+                          <p class="font-medium text-gray-900" x-text="':' + client.port"></p>
+                        </template>
                         <p class="text-sm text-gray-500">
                           <span class="text-gray-400 break-all"
                             x-text="(client.key.startsWith('hs://s') ? (client.key.substring(0, 8) + '...') : client.key)"></span>
@@ -680,6 +690,8 @@
         clients: [],
         subtitleParts: [],
         fixedClientPorts: false,
+        clientLinkDomain: '<nolink>',
+        evaluatedClientLinkDomain: '',
 
         // Auth state
         authRequired: false,
@@ -1095,8 +1107,15 @@
             if (data.fixedClientPorts !== this.fixedClientPorts) {
               this.fixedClientPorts = data.fixedClientPorts;
             }
-            if (data.clientHost !== this.clientHost) {
-              this.clientHost = data.clientHost;
+            if (data.clientLinkDomain !== this.clientLinkDomain) {
+              this.clientLinkDomain = data.clientLinkDomain;
+              if (this.clientLinkDomain === '<nolink>') {
+                this.evaluatedClientLinkDomain = '';
+              } else if (!this.evaluatedClientLinkDomain) {
+                this.evaluatedClientLinkDomain = window.location.hostname;
+              } else {
+                this.evaluatedClientLinkDomain = this.clientLinkDomain;
+              }
             }
             this.loadingState = 'loaded';
           } catch (err) {

@@ -71,6 +71,7 @@ CLI flags take precedence over environment variables. Copy `.env.example` to `.e
 | `HSSB_PORT` | Web dashboard UI port | `--port` |
 | `HSSB_HOST` | Web dashboard UI host | `--host` |
 | `HSSB_CLIENT_HOST` | Host for Holesail clients to bind to | `--client-host` |
+| `HSSB_CLIENT_LINK_DOMAIN` | Domain for client links in dashboard (blank=same as dashboard, `<nolink>`=disable) | |
 | `HSSB_SUBTITLE` | Optional subtitle for the UI | |
 | `HSSB_FIXED_CLIENT_PORTS` | Comma-separated list of fixed client ports | |
 
