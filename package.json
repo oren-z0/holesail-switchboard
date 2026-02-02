@@ -1,7 +1,7 @@
 {
   "name": "holesail-switchboard",
   "type": "commonjs",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "A web interface to manage multiple holesail servers and clients",
   "main": "dist/server.js",
   "bin": {
