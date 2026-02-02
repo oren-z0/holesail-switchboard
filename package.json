@@ -58,7 +58,7 @@
     "tailwindcss": "^4.0.9"
   },
   "keywords": [
-    "Holesail"
+    "holesail", "hyperdht", "holepunch"
   ],
   "author": "orenz0@protonmail.com",
   "license": "AGPL-3.0",
