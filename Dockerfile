@@ -30,4 +30,4 @@ COPY LICENSE ./LICENSE
 EXPOSE 3000
 
 # Avoid requiring devDependency "dotenv" at runtime
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/server.js", "--no-open"]
