@@ -82,7 +82,6 @@ async function ensureDataFile(fixedClientPorts) {
     console.info(`Using data file: ${dataFile}`);
     await fs.mkdir(path.dirname(dataFile), { recursive: true });
     try {
-      await fs.access(dataFile);
       const fileContent = await fs.readFile(dataFile, 'utf-8');
       const data = JSON.parse(fileContent);
       if (Array.isArray(data.servers)) {
@@ -95,24 +94,13 @@ async function ensureDataFile(fixedClientPorts) {
         holesailClients.push(...data.clients.filter(
           (client) => !fixedClientPorts || fixedClientPorts.has(client.port))
         );
-        if (fixedClientPorts) {
-          const usedPorts = new Set(holesailClients.map(client => client.port));
-          const unusedPorts = [...fixedClientPorts].filter(port => !usedPorts.has(port)).sort((a, b) => a - b);
-          for (const port of unusedPorts) {
-            holesailClients.push({
-              key: '',
-              port,
-              enabled: false,
-            });
-          }
-          if (unusedPorts.length > 0) {
-            console.info(`Created ${unusedPorts.length} unused clients for ports: ${unusedPorts.join(', ')}`);
-            await saveData();
-          }
-        }
       }
     } catch (error) {
-      console.error('Error initializing data file - resetting', error);
+      if (error?.code === 'ENOENT') {
+        console.info(`Data file does not exist, creating empty data file`);
+      } else {
+        console.warn('Error initializing data file - resetting', error);
+      }
       await saveData();
     }
   } catch (err) {
@@ -659,6 +647,21 @@ async function start(openBrowser = false) {
     }
     if (!await ensureDataFile(fixedClientPorts)) {
       throw new Error('Failed to initialize data file');
+    }
+    if (fixedClientPorts) {
+      const usedPorts = new Set(holesailClients.map(client => client.port));
+      const unusedPorts = [...fixedClientPorts].filter(port => !usedPorts.has(port)).sort((a, b) => a - b);
+      for (const port of unusedPorts) {
+        holesailClients.push({
+          key: '',
+          port,
+          enabled: false,
+        });
+      }
+      if (unusedPorts.length > 0) {
+        console.info(`Created ${unusedPorts.length} unused clients for ports: ${unusedPorts.join(', ')}`);
+        await saveData();
+      }
     }
 
     for (let i = 0; i < holesailServers.length; i++) {
