@@ -210,7 +210,7 @@ function signAccessToken(sessionId) {
   const expiresAt = now + accessTokenExpirySeconds;
   const token = fastify.jwt.sign(
     { sid: sessionId },
-    { expiresIn: accessTokenExpirySeconds, jwtid: nodeCrypto.randomUUID() }
+    { expiresIn: accessTokenExpirySeconds }
   );
   return { token, expiresAt };
 }
