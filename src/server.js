@@ -8,6 +8,7 @@ const fs = require('fs/promises');
 const nodeCrypto = require('crypto');
 const Holesail = require('holesail');
 const { default: pLimit } = require('p-limit');
+const pkg = require('../package.json');
 const auth = require('./auth');
 
 const accessTokenExpirySeconds = 10 * 60; // 10 minutes
@@ -696,6 +697,7 @@ if (require.main === module) {
   program
     .name('holesail-switchboard')
     .description('A web interface to manage multiple holesail servers and clients')
+    .version(pkg.version)
     .option('-d, --data-file <path>', 'Path to data file (overrides HSSB_DATA_FILE)')
     .option('-p, --port <number>', 'Web dashboard UI port (overrides HSSB_PORT)')
     .option('-H, --host <address>', 'Web dashboard UI host (overrides HSSB_HOST)')
