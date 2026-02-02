@@ -686,7 +686,6 @@
         authToken: localStorage.getItem('authToken') || null,
         authExpiresAt: parseInt(localStorage.getItem('authExpiresAt') || '0', 10) || 9,
         refreshToken: localStorage.getItem('refreshToken') || null,
-        refreshExpiresAt: parseInt(localStorage.getItem('refreshExpiresAt') || '0', 10) || 0,
         isAuthenticated: true,
 
         loginModal: {
@@ -754,13 +753,13 @@
             localStorage.setItem('authExpiresAt', String(this.authExpiresAt));
             if (this.refreshToken) {
               localStorage.setItem('refreshToken', this.refreshToken);
+            } else {
+              localStorage.removeItem('refreshToken');
             }
-            localStorage.setItem('refreshExpiresAt', String(this.refreshExpiresAt || 0));
           } else {
             localStorage.removeItem('authToken');
             localStorage.removeItem('authExpiresAt');
             localStorage.removeItem('refreshToken');
-            localStorage.removeItem('refreshExpiresAt');
           }
         },
 
@@ -768,7 +767,6 @@
           this.authToken = null;
           this.authExpiresAt = 0;
           this.refreshToken = null;
-          this.refreshExpiresAt = 0;
           if (this.isAuthenticated) {
             // was authenticated, reset modal state.
             this.loginModal = {
@@ -840,7 +838,6 @@
             this.authToken = data.token;
             this.authExpiresAt = data.expiresAt;
             this.refreshToken = data.refreshToken;
-            this.refreshExpiresAt = data.refreshExpiresAt;
             this.isAuthenticated = true;
             this.saveAuthState();
             return true;
@@ -872,7 +869,6 @@
             this.authToken = data.token;
             this.authExpiresAt = data.expiresAt;
             this.refreshToken = data.refreshToken;
-            this.refreshExpiresAt = data.refreshExpiresAt;
             this.isAuthenticated = true;
             this.saveAuthState();
 
