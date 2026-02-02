@@ -33,3 +33,4 @@ If you want to expose an internal container, you will have to dig in the docker-
 - lnbits_web_1: 3007
 - btcpay-server_web_1: 3003
 - bitcoin_app_1: 8332 (RPC) 8333 (P2P)
+- holesail-switchboard_web_1: 3160 (Yo dawg, you can let remote users access this app too!)
