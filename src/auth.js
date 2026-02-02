@@ -1,11 +1,24 @@
 const nodeCrypto = require('crypto');
 
 // Constants
-const scryptParams = { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
+const defaultScryptParams = { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
 const keyLength = 64;
 const saltLength = 32;
 const refreshTokenExpirySeconds = 7 * 24 * 3600; // 7 days
 const maxSessions = 100;
+
+function encodeScryptParams(params) {
+  // Compact and ":"-safe (third segment of the stored hash).
+  return `${params.N},${params.r},${params.p},${params.maxmem}`;
+}
+
+function decodeScryptParams(encoded) {
+  const parts = encoded.split(',');
+  if (parts.length !== 4) return null;
+  const [N, r, p, maxmem] = parts.map((v) => Number.parseInt(v, 10));
+  if (![N, r, p, maxmem].every((v) => Number.isSafeInteger(v) && v > 0)) return null;
+  return { N, r, p, maxmem };
+}
 
 // In-memory state
 const sessionsById = new Map(); // sessionId -> { refreshTokenHash, issuedAt, refreshExpiresAt }
@@ -35,36 +48,38 @@ function hashRefreshToken(refreshToken) {
 /**
  * Hash a password using scrypt
  * @param {string} password - The password to hash
- * @returns {Promise<string>} - "salt:derivedKey" in hex
+ * @returns {Promise<string>} - "salt:derivedKey:params" (salt/derivedKey hex; params "N,r,p,maxmem")
  */
 async function hashPassword(password) {
   const salt = nodeCrypto.randomBytes(saltLength);
   const derivedKey = await new Promise((resolve, reject) => {
-    nodeCrypto.scrypt(password, salt, keyLength, scryptParams, (err, key) => {
+    nodeCrypto.scrypt(password, salt, keyLength, defaultScryptParams, (err, key) => {
       if (err) reject(err);
       else resolve(key);
     });
   });
-  return `${salt.toString('hex')}:${derivedKey.toString('hex')}`;
+  const paramsEncoded = encodeScryptParams(defaultScryptParams);
+  return `${salt.toString('hex')}:${derivedKey.toString('hex')}:${paramsEncoded}`;
 }
 
 /**
  * Verify a password against a stored hash using timing-safe comparison
  * @param {string} password - The password to verify
- * @param {string} storedHash - The stored "salt:derivedKey" hash
+ * @param {string} storedHash - The stored "salt:derivedKey" or "salt:derivedKey:params" hash
  * @returns {Promise<boolean>} - Whether the password is correct
  */
 async function verifyPassword(password, storedHash) {
-  const [saltHex, storedKeyHex] = storedHash.split(':');
+  const [saltHex, storedKeyHex, paramsEncoded] = storedHash.split(':');
   if (!saltHex || !storedKeyHex) {
     return false;
   }
 
   const salt = Buffer.from(saltHex, 'hex');
   const storedKey = Buffer.from(storedKeyHex, 'hex');
+  const params = decodeScryptParams(paramsEncoded);
 
   const derivedKey = await new Promise((resolve, reject) => {
-    nodeCrypto.scrypt(password, salt, keyLength, scryptParams, (err, key) => {
+    nodeCrypto.scrypt(password, salt, keyLength, params, (err, key) => {
       if (err) reject(err);
       else resolve(key);
     });
