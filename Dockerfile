@@ -23,9 +23,9 @@ ENV NODE_ENV=production
 # Runtime needs production node_modules + published artifacts
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY --from=build package.json ./package.json
-COPY --from=build package-lock.json ./package-lock.json
-COPY --from=build LICENSE ./LICENSE
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/package-lock.json ./package-lock.json
+COPY LICENSE ./LICENSE
 
 EXPOSE 3000
 
