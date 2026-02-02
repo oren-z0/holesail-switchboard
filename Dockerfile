@@ -1,27 +1,33 @@
-FROM node:22.12-slim
+FROM node:24.13-slim AS build
 
 WORKDIR /app
 
-# Copy package files
+# Install all deps (incl dev) for build
 COPY package.json package-lock.json ./
-
-# Install dependencies
 RUN npm ci
 
-# Copy source code
-COPY . .
+# Copy only sources needed for build
+COPY src ./src
 
-# Build the application
+# Build output into dist/
 RUN npm run build
 
-# Set environment variables
-ENV NODE_ENV=production
-
-# Delete unnecessary modules
+# Keep only production dependencies for runtime
 RUN npm prune --omit=dev
 
-# Expose default port
+FROM node:24.13-slim AS runtime
+
+WORKDIR /app
+ENV NODE_ENV=production
+
+# Runtime needs production node_modules + published artifacts
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build package.json ./package.json
+COPY --from=build package-lock.json ./package-lock.json
+COPY --from=build LICENSE ./LICENSE
+
 EXPOSE 3000
 
-# Start the server
-CMD ["npm", "run", "start"]
+# Avoid requiring devDependency "dotenv" at runtime
+CMD ["node", "dist/server.js"]
