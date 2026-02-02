@@ -6,7 +6,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Holesail Switchboard is a web interface to manage multiple [holesail](https://github.com/holesail/holesail) servers and clients. It provides a centralized dashboard for creating, editing, and monitoring peer-to-peer connections.
 
-## Commands
+## CLI Usage
+
+Run directly with npx (no installation required):
+
+```bash
+npx holesail-switchboard                    # Start with defaults, opens browser
+npx holesail-switchboard --port 4000        # Custom port
+npx holesail-switchboard --no-open          # Don't open browser
+npx holesail-switchboard --data-file /path  # Custom data file location
+```
+
+CLI flags: `-d, --data-file`, `-p, --port`, `-H, --host`, `-c, --client-host`, `--no-open`, `-h, --help`
+
+## Development Commands
 
 ```bash
 npm install          # Install dependencies
@@ -20,7 +33,7 @@ npm run docker:build-to-registry  # Build multi-platform Docker image
 
 ## Architecture
 
-**Backend**: Single Fastify server (`src/server.js`) with REST API endpoints:
+**Backend**: Single Fastify server (`src/server.js`) with CLI (using `commander`) and REST API endpoints:
 - `GET /api/settings` - Returns all servers and clients with their runtime state
 - `POST /api/servers` - Create a new holesail server
 - `PATCH /api/servers/:index` - Update a server (restarts it with new config)
@@ -51,10 +64,17 @@ npm run docker:build-to-registry  # Build multi-platform Docker image
 
 ## Environment Variables
 
-Copy `.env.example` to `.env`. Key variables:
-- `HSSB_DATA_FILE` - Path to JSON state file (required)
-- `HSSB_PORT` / `HSSB_HOST` - Web server binding
-- `HSSB_CLIENT_HOST` - Default host for clients (optional, defaults to 127.0.0.1)
+CLI flags take precedence over environment variables. Copy `.env.example` to `.env`. Key variables:
+- `HSSB_DATA_FILE` - Path to JSON state file (defaults to OS-specific location if not set)
+- `HSSB_PORT` / `HSSB_HOST` - Web dashboard UI binding
+- `HSSB_CLIENT_HOST` - Host for holesail clients to bind to (defaults to 127.0.0.1)
+- `HSSB_SUBTITLE` - Optional subtitle for the UI
+- `HSSB_FIXED_CLIENT_PORTS` - Comma-separated list of fixed client ports
+
+**Default data file locations** (when not specified):
+- macOS: `~/Library/Application Support/holesail-switchboard/data.json`
+- Linux: `~/.config/holesail-switchboard/data.json`
+- Windows: `%APPDATA%/holesail-switchboard/data.json`
 
 ## Code Style
 

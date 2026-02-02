@@ -7,6 +7,12 @@
   "bin": {
     "holesail-switchboard": "./dist/server.js"
   },
+  "files": [
+    "dist",
+    ".env.example",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "start": "node dist/server.js",
     "ensure-dist": "mkdir -p dist",
