@@ -4,7 +4,7 @@ With Holesail-Switchboard installed, you can let remote users access your apps, 
 
 BE CAREFUL: DO NOT OPEN UNINTENDED PORTS TO THE PUBLIC!
 
-To list the hostnames of all the installed apps, go to... and run:
+To list the hostnames of all the installed apps, go to Settings > Advanced settings > Terminal > umbrelOS and run:
 
 ```bash
 sudo docker network inspect umbrel_main_network --format '{{range .Containers}}{{.Name}}{{"\n"}}{{end}}' | sort
@@ -26,6 +26,19 @@ cat ~/umbrel/app-data/mempool/umbrel-app.yml | yq '.port'
 ```
 
 If you want to expose an internal container, you will have to dig in the docker-compose.yml and exports.sh files inside `~/umbrel/app-data/<app-name>`.
+
+After adding the container hostname & port as a server in the Holesail Switchboard UI, you will get a holesail URL (something like 'hs://0...'),
+which you can use on a different Umbrel machine as a client.
+
+You can also access it from any computer with Node.JS, by calling:
+```bash
+npx holesail --connect <hs-url> --host localhost --port 8080
+```
+
+And also from [Android](https://play.google.com/store/apps/details?id=io.holesail.holesail.go) or [iOS](https://apps.apple.com/us/app/holesail-go/id6503728841) devices.
+
+Disclosure: I'm not part of the Holesail core team. I only (vibe) coded this UI and dockerized it.
+If you have questions about the technology, check out https://holesail.io and https://npmjs.com/package/holesail
 
 ## List of common container names and their ports
 
